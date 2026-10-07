@@ -1,6 +1,11 @@
 import json
 import urllib.request
 from os import getenv
+from dotenv import load_dotenv
+
+# Функция читает файл .env и загружает все данные из него в приложение
+# без него не будет работать строка getenv
+load_dotenv()
 
 
 # Функцией фиксим дублирование кода
@@ -10,11 +15,11 @@ def makeRequest(method: str, **param) -> dict:
     # Строкой заменяем переменную data в строках 26, 50 и т.п.
     json_data = json.dumps(param).encode("utf-8")
     # Создает объект запроса, но сам запрос ещё не отправлен, указывает куда будем отправлять запрос
-    request = urllib.request(
+    request = urllib.request.Request(
         # Метод запроса
         method="POST",
         # url-адрес (бот в данном случае). Отправляем на него getUpdates/sendMessage и т.п через method
-        url=f'{getenv("BOT_TOKEN_URI")/{method}}',
+        url=f"{getenv('BOT_TOKEN_URI')}/{method}",
         # Какие данные отправляются
         data=json_data,
         # Какой тип данных
