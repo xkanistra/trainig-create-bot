@@ -1,4 +1,3 @@
-from enum import Flag
 import sqlite3
 import json
 from os import getenv
