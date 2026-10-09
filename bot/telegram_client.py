@@ -58,3 +58,11 @@ def sendMessage(chat_id: int, text: str, **params) -> dict:
 # getMe способ тестирования токена аутентификации вашего бота. Не требуется никаких параметров
 def getMe() -> dict:
     return makeRequest("getMe")
+
+
+def sendPhoto(chat_id: int, photo: str, **params) -> dict:
+    return makeRequest("sendPhoto", chat_id=chat_id, photo=photo, **params)
+
+
+def sendDocument(chat_id: int, document: str, **params) -> dict:
+    return makeRequest("sendDocument", chat_id=chat_id, document=document, **params)

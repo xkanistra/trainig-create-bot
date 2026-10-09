@@ -11,7 +11,7 @@ class MessageEcho(Handler):
         return "message" in update and "text" in update["message"]
 
     # try/except не ставим, т.к can_handle гарантирует что придет message и text
-    def handele(self, update: dict) -> bool:
+    def handle(self, update: dict) -> bool:
         bot.telegram_client.sendMessage(
             chat_id=update["message"]["chat"]["id"],
             text=update["message"]["text"],

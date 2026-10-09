@@ -2,6 +2,8 @@
 
 
 from bot.handler import Handler
+from bot.tools.json_inspector import inspect
+
 
 class Dispatcher:
     def __init__(self):
@@ -14,12 +16,13 @@ class Dispatcher:
             self.__handlers.append(handler)
 
     # Метод обрабатывает сигнал из хендлера
-    def dispatch(self, update: dict) -> None: 
+    def dispatch(self, update: dict) -> None:
+        inspect(update)
         # Перебирает массив
         for handler in self.__handlers:
-            # Если хендлер говорит что он все сделал, 
+            # Если хендлер говорит что он все сделал,
             # останавливаем перебор хендлеров
             if handler.can_handle(update):
-                signal = handler.handele(update)
+                signal = handler.handle(update)
                 if not signal:
                     break

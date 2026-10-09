@@ -8,7 +8,7 @@ class Handler(ABC):
     def can_handle(self, update: dict) -> bool: ...
 
     @abstractmethod
-    def handele(self, update: dict) -> bool:
+    def handle(self, update: dict) -> bool:
         """_summary_
         return options
         - true - signal for dispatcher to continue processing
