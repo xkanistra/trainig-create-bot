@@ -1,3 +1,4 @@
+from enum import Flag
 import sqlite3
 import json
 from os import getenv
@@ -31,7 +32,10 @@ def persist_updates(updates: list) -> None:
     connection = sqlite3.connect(getenv("SQLITE_DATABASE_PATH"))
     data = []
     for update in updates:
-        data.append((json.dumps(update),))
+        ## ensure_ascii - по умолчанию True, False позволяет передавать русские символы и т.п
+        ## indent - отступы
+        ## так же можно указывать как будет отображать данные БД
+        data.append((json.dumps(update, ensure_ascii=False),))
     with connection:
         connection.executemany(
             "INSERT INTO telegram_updates (payload) VALUES (?)",
