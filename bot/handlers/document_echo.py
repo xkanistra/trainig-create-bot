@@ -16,8 +16,8 @@ class DocumentEcho(Handler):
         # В update получаем сообщение, фото,
         # качество(оно в виде списка, поэтому -1) и id файла
         file_id = update["message"]["document"]["file_id"]
-        bot.telegram_client.sendPhoto(
+        bot.telegram_client.sendDocument(
             chat_id=update["message"]["chat"]["id"],
-            photo=file_id,
+            document=file_id,
         )
         return False
