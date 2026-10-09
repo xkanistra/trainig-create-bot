@@ -11,7 +11,8 @@ def main() -> None:
     next_update_offset = 0
     try:
         while True:
-            updates = bot.telegram_client.getUpdates(next_update_offset)
+            ## Явно указывает что передаем в переменную
+            updates = bot.telegram_client.getUpdates(offset=next_update_offset)
             bot.database_client.persist_updates(updates)
             for update in updates:
                 try:

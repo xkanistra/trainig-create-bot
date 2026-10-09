@@ -41,15 +41,18 @@ def makeRequest(method: str, **param) -> dict:
 # Метод getUpdates запрашивает данные с сервера
 # offset - параметр метода getUpdates, можно посмотреть в доке TG Bot API
 # https://core.telegram.org/bots/api
-def getUpdates(offset: int) -> dict:
+## UPD: Замена в запросе обновления конкретного типа данных, на любой тип данных
+## Тоже самое делает в main
+def getUpdates(**params) -> dict:
     # Используем новую функцию для создания универсальных запросов
-    return makeRequest("getUpdates", offset=offset)
+    return makeRequest("getUpdates", **params)
 
 
 # sendMessage принимает сообщения которые отправлены в бота
 # так же принимает аргументами параметры для sendMessage
-def sendMessage(chat_id: int, text: str) -> dict:
-    return makeRequest("sendMessage", chat_id=chat_id, text=text)
+## UPD: Явно указываем что могут быть и другие параметры
+def sendMessage(chat_id: int, text: str, **params) -> dict:
+    return makeRequest("sendMessage", chat_id=chat_id, text=text, **params)
 
 
 # getMe способ тестирования токена аутентификации вашего бота. Не требуется никаких параметров
