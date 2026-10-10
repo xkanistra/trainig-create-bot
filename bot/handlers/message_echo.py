@@ -1,6 +1,6 @@
 # Создаем хендлеры
 
-from bot.handlers.handler import Handler
+from bot.handlers.handler import Handler, HandlerStatus
 import bot.telegram_client
 
 
@@ -16,7 +16,7 @@ class MessageEcho(Handler):
             chat_id=update["message"]["chat"]["id"],
             text=update["message"]["text"],
         )
-        return False
+        return HandlerStatus.STOP
 
 
 # После написания хендлера нужно внести его в архитектуру бота в __main__.py

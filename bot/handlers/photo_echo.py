@@ -1,6 +1,6 @@
 # Отправляем фото обратно пользователю
 
-from bot.handlers.handler import Handler
+from bot.handlers.handler import Handler, HandlerStatus
 import bot.telegram_client
 
 
@@ -18,4 +18,4 @@ class PhotoEcho(Handler):
             chat_id=update["message"]["chat"]["id"],
             photo=file_id,
         )
-        return False
+        return HandlerStatus.STOP

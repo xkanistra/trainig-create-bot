@@ -1,6 +1,6 @@
 # Отправляем файл обратно пользователю
 
-from bot.handlers.handler import Handler
+from bot.handlers.handler import Handler, HandlerStatus
 import bot.telegram_client
 
 
@@ -17,4 +17,4 @@ class DocumentEcho(Handler):
             chat_id=update["message"]["chat"]["id"],
             document=file_id,
         )
-        return False
+        return HandlerStatus.STOP
