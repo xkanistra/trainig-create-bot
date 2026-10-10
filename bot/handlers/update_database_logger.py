@@ -1,7 +1,7 @@
 # Хендлер записывает информацию в БД
 
 
-from bot.handler import Handler
+from bot.handlers.handler import Handler
 import bot.database_client
 
 

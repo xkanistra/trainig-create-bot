@@ -1,6 +1,6 @@
 # Создаем хендлеры
 
-from bot.handler import Handler
+from bot.handlers.handler import Handler
 import bot.telegram_client
 
 
