@@ -69,3 +69,45 @@ def ensure_users_exists(telegram_id: int) -> None:
             connection.execute(
                 "INSERT INTO users (telegram_id) VALUES (?)", (telegram_id,)
             )
+
+
+# Очищает заказ пользователя
+def clear_user_state_and_order(telegram_id: int) -> None:
+    with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection:
+        with connection:
+            connection.execute(
+                "UPDATE users SET state = NULL, order_json = NULL WHERE telegram_id = ?",
+                (telegram_id,),
+            )
+
+
+# Обновляет состояние пользователя
+def update_user_state(telegram_id: int, state: str) -> None:
+    with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection:
+        with connection:
+            connection.execute(
+                "UPDATE users SET state = ? WHERE telegram_id = ?",
+                (state, telegram_id),
+            )
+
+
+# Функция достает пользовательский id
+def get_user(telegram_id: int) -> dict | None:
+    with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection:
+        with connection:
+            # Запрос в БД по telegram_id
+            cursor = connection.execute(
+                "SELECT id, telegram_id, created_ad, state, order_json FROM users WHERE telegram_id = (?)",
+                (telegram_id,),
+            )
+            # Достаем только одну запись, т.к telegram_id уникален
+            result = cursor.fetchone()
+            if result:
+                return {
+                    "id": result[0],
+                    "telegram_id": result[1],
+                    "created_ad": result[2],
+                    "state": result[3],
+                    "order_json": result[4],
+                }
+            return None

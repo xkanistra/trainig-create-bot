@@ -5,11 +5,11 @@ import bot.database_client
 
 
 class UpdateDatabaseLogger(Handler):
-    def can_handle(self, update: dict) -> bool:
+    def can_handle(self, update: dict, state: str, order_json: dict) -> bool:
         # Возвращает True при любом типе данных
         return True
 
-    def handle(self, update: dict) -> bool:
+    def handle(self, update: dict, state: str, order_json: dict) -> bool:
         # Записыва все полученные данные в БД и возвращаем True, чтобы
         # перешло к другому хендлеру
         bot.database_client.persist_updates([update])
