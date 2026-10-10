@@ -15,6 +15,7 @@ def recreate_database() -> None:
     with connection:
         # SQL запросы
         connection.execute("DROP TABLE IF EXISTS telegram_updates")
+        connection.execute("DROP TABLE IF EXISTS users")
         connection.execute(
             """
         CREATE TABLE IF NOT EXISTS telegram_updates 
@@ -26,18 +27,16 @@ def recreate_database() -> None:
         )
         connection.execute(
             """
-                CREATE TABLE IF NOT EXISTS users 
-                (
-                    id INTEGER PRIMARY KEY,
-                    telegram_id INTEGER NOT NULL UNIQUE,
-                    created_ad TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    state TEXT DEFAULT NULL,
-                    order_json TEXT DEFAULT NULL
-                )
-                """,
+        CREATE TABLE IF NOT EXISTS users 
+        (
+            id INTEGER PRIMARY KEY,
+            telegram_id INTEGER NOT NULL UNIQUE,
+            created_ad TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            state TEXT DEFAULT NULL,
+            order_json TEXT DEFAULT NULL
         )
-    # Обязательно нужно закрыть
-    connection.close()
+        """,
+        )
 
 
 # Запрос в БД обновляет данные в ней
@@ -62,11 +61,11 @@ def ensure_users_exists(telegram_id: int) -> None:
     with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection:
         # Проверяет есть ли пользователь в БД с таким ID
         cursor = connection.execute(
-            "SELECT 1 FROM user WHERE telegram_id = ?", (telegram_id,)
+            "SELECT 1 FROM users WHERE telegram_id = ?", (telegram_id,)
         )
 
         # Если нету, то добавляет пользователя
         if cursor.fetchone() is None:
             connection.execute(
-                "INSERT INTO user (telegram_id) VALUES (?)", (telegram_id,)
+                "INSERT INTO users (telegram_id) VALUES (?)", (telegram_id,)
             )
