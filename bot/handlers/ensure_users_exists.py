@@ -7,7 +7,7 @@ class EnsureUsersExists(Handler):
         # Проверяет message на наличие from, т.к в from хранится ID
         return "message" in update and "from" in update["message"]
 
-    def handle(self, update: dict, state: str, order_json: dict) -> bool: 
+    def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus: 
         # В update получаем сообщение, документ и его id
         telegram_id = update["message"]["from"]["id"]
         bot.database_client.ensure_users_exists(telegram_id)

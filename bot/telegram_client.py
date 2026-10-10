@@ -60,9 +60,10 @@ def getMe() -> dict:
     return makeRequest("getMe")
 
 
-def sendPhoto(chat_id: int, photo: str, **params) -> dict:
-    return makeRequest("sendPhoto", chat_id=chat_id, photo=photo, **params)
+# Удаляет сообщение бота
+def deleteMessage(chat_id: int, message_id: int) -> dict:
+    return makeRequest("deleteMessage", chat_id=chat_id, message_id=message_id)
 
 
-def sendDocument(chat_id: int, document: str, **params) -> dict:
-    return makeRequest("sendDocument", chat_id=chat_id, document=document, **params)
+def answerCallbackQuery(callback_query_id: str, **kwargs) -> dict:
+    return makeRequest("answerCallbackQuery", callback_query_id=callback_query_id, **kwargs)

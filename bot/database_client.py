@@ -111,3 +111,13 @@ def get_user(telegram_id: int) -> dict | None:
                     "order_json": result[4],
                 }
             return None
+
+
+# Функция по telegram_id пользователю в order_json записывает данные
+def update_user_order_json(telegram_id: int, order_json: str) -> None:
+    with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection:
+        with connection:
+            connection.execute(
+                "UPDATE users SET order_json = ? WHERE telegram_id = ?",
+                (json.dumps(order_json, ensure_ascii=False, indent=2), telegram_id)
+            )

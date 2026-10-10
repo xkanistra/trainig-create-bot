@@ -15,7 +15,7 @@ class MesageStart(Handler):
             and update["message"]["text"] == "/start"
         )
 
-    def handle(self, update: dict, state: str, order_json: dict) -> bool:
+    def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus:
         # В update получаем сообщение, документ и его id
         telegram_id = update["message"]["from"]["id"]
 
@@ -51,8 +51,8 @@ class MesageStart(Handler):
                             {"text": "Дьявола", "callback_data": "pizza_diavola"},
                             {"text": "Прошутто", "callback_data": "pizza_prosciutto"},
                         ],
-                    ]
-                }
+                    ],
+                },
             ),
         )
         return HandlerStatus.STOP
