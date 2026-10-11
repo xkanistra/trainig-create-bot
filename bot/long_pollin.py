@@ -11,7 +11,10 @@ def start_long_polling(dispatcher: Dispatcher) -> None:
     while True:
         # Вызывает getUpdate
         ## Явно указывает что передаем в переменную
-        updates = bot.telegram_client.getUpdates(offset=next_update_offset)
+        ### UPD. Указываем какие обновления хотим получать в allowed_updates
+        updates = bot.telegram_client.getUpdates(
+            offset=next_update_offset, allowed_updates=["message", "callback_query"]
+        )
         # Проходитт по всем update
         for update in updates:
             # Строка прибавляет к ID сообщения +1, чтобы не отображались старые СМС

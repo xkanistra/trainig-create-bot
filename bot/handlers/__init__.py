@@ -12,6 +12,6 @@ def get_handlers() -> list[Handler]:
     return [
         UpdateDatabaseLogger(),
         EnsureUsersExists(),
+        PizzaSelection(),
         MesageStart(),
-        PizzaSelection()
     ]
