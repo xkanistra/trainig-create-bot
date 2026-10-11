@@ -1,3 +1,4 @@
+import re
 import sqlite3
 import json
 from os import getenv
@@ -119,5 +120,19 @@ def update_user_order_json(telegram_id: int, order_json: str) -> None:
         with connection:
             connection.execute(
                 "UPDATE users SET order_json = ? WHERE telegram_id = ?",
-                (json.dumps(order_json, ensure_ascii=False, indent=2), telegram_id)
+                (json.dumps(order_json, ensure_ascii=False, indent=2), telegram_id),
             )
+
+
+def get_order_json(telegram_id: int, order_json: str) -> dict:
+    with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection:
+        with connection:
+            cursor = connection.execute(
+                "SELECT order_json FROM users WHERE telegram_id = ?", (telegram_id,)
+            )
+        result = cursor.fetchone()
+        if result:
+            return {"order_json": result[0]}
+        return None
+
+    
