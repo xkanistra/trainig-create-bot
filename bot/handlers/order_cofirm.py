@@ -15,7 +15,7 @@ class OrderConfirm(Handler):
             return False
 
         callback_data = update["callback_query"]["data"]
-        return callback_data.startswith("order_")
+        return callback_data.startswith("confirm_")
 
     def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus:
         telegram_id = update["callback_query"]["from"]["id"]

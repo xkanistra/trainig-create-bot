@@ -44,6 +44,7 @@ class WaitForOrder(Handler):
             "drink_pepsi": "Pepsi",
             "drink_7_up": "7-Up",
             "drink_water": "Вода",
+            "drink_none": "Без напитка",
         }
 
         drink_name = drink_mapping.get(callback_data)
@@ -68,11 +69,11 @@ class WaitForOrder(Handler):
                         [
                             {
                                 "text": "✅ Всё верно, заказываю!",
-                                "callback_data": "order_confirm",
+                                "callback_data": "confirm_order",
                             },
                             {
                                 "text": "❌ Отменить заказ",
-                                "callback_data": "order_cancel",
+                                "callback_data": "cancel_order",
                             },
                         ],
                         [

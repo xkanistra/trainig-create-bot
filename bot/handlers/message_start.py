@@ -16,7 +16,9 @@ class MesageStart(Handler):
         ):
             return True
 
-        if "callback_query" in update and update["callback_query"]["data"].startswith("new_"):
+        if "callback_query" in update and update["callback_query"]["data"].startswith(
+            "new_"
+        ):
             return True
 
         return False
@@ -30,22 +32,40 @@ class MesageStart(Handler):
             telegram_id = update["callback_query"]["from"]["id"]
             chat_id = update["callback_query"]["message"]["chat"]["id"]
             message_id = update["callback_query"]["message"]["message_id"]
+            callback_data = update["callback_query"]["data"]
 
+        message_command = (
+            "message" in update
+            and "text" in update["message"]
+            and update["message"]["text"] == "/start"
+        )
+
+        pizza_keyboard = json.dumps(
+            {
+                "inline_keyboard": [
+                    [
+                        {"text": "Маргарита", "callback_data": "pizza_margherita"},
+                        {"text": "Пепперони", "callback_data": "pizza_pepperoni"},
+                    ],
+                    [
+                        {
+                            "text": "Четыре сыра",
+                            "callback_data": "pizza_quatro_stagioni",
+                        },
+                        {"text": "Капричоза", "callback_data": "pizza_capricciosa"},
+                    ],
+                    [
+                        {"text": "Дьявола", "callback_data": "pizza_diavola"},
+                        {"text": "Прошутто", "callback_data": "pizza_prosciutto"},
+                    ],
+                ],
+            }
+        )
         # Очищает заказ клиента
         bot.database_client.clear_user_state_and_order(telegram_id)
         bot.database_client.update_user_state(telegram_id, "WAIT_FOR_PIZZA_NAME")
 
-        try:
-            bot.telegram_client.answerCallbackQuery(update["callback_query"]["id"])
-        except Exception:
-            pass
-
-        if (
-            "message" in update
-            and "text" in update["message"]
-            and update["message"]["text"] == "/start"
-        ):
-            # Блок удаляет любую клавиатуру помимо Inline
+        if message_command:
             bot.telegram_client.sendMessage(
                 chat_id=update["message"]["chat"]["id"],
                 text="Добро пожаловать в Пиццерию!",
@@ -55,39 +75,7 @@ class MesageStart(Handler):
             bot.telegram_client.sendMessage(
                 chat_id=chat_id,
                 text="Пожалуйста выберите пиццу",
-                reply_markup=json.dumps(
-                    {
-                        "inline_keyboard": [
-                            [
-                                {
-                                    "text": "Маргарита",
-                                    "callback_data": "pizza_margherita",
-                                },
-                                {
-                                    "text": "Пепперони",
-                                    "callback_data": "pizza_pepperoni",
-                                },
-                            ],
-                            [
-                                {
-                                    "text": "Четыре сыра",
-                                    "callback_data": "pizza_quatro_stagioni",
-                                },
-                                {
-                                    "text": "Капричоза",
-                                    "callback_data": "pizza_capricciosa",
-                                },
-                            ],
-                            [
-                                {"text": "Дьявола", "callback_data": "pizza_diavola"},
-                                {
-                                    "text": "Прошутто",
-                                    "callback_data": "pizza_prosciutto",
-                                },
-                            ],
-                        ],
-                    },
-                ),
+                reply_markup=pizza_keyboard,
             )
         else:
             try:
@@ -99,38 +87,6 @@ class MesageStart(Handler):
                 chat_id=chat_id,
                 message_id=message_id,
                 text="Пожалуйста выберите пиццу",
-                reply_markup=json.dumps(
-                    {
-                        "inline_keyboard": [
-                            [
-                                {
-                                    "text": "Маргарита",
-                                    "callback_data": "pizza_margherita",
-                                },
-                                {
-                                    "text": "Пепперони",
-                                    "callback_data": "pizza_pepperoni",
-                                },
-                            ],
-                            [
-                                {
-                                    "text": "Четыре сыра",
-                                    "callback_data": "pizza_quatro_stagioni",
-                                },
-                                {
-                                    "text": "Капричоза",
-                                    "callback_data": "pizza_capricciosa",
-                                },
-                            ],
-                            [
-                                {"text": "Дьявола", "callback_data": "pizza_diavola"},
-                                {
-                                    "text": "Прошутто",
-                                    "callback_data": "pizza_prosciutto",
-                                },
-                            ],
-                        ]
-                    }
-                ),
+                reply_markup=pizza_keyboard,
             )
         return HandlerStatus.STOP
