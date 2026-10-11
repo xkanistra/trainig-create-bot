@@ -1,5 +1,6 @@
 # Хендлер отправляет сообщ при входе пользователя
 
+from email import message
 import json
 import bot.telegram_client
 import bot.database_client
@@ -18,7 +19,8 @@ class MesageStart(Handler):
     def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus:
         # В update получаем сообщение, документ и его id
         telegram_id = update["message"]["from"]["id"]
-
+        chat_id = update["message"]["chat"]["id"]
+        
         # Очищает заказ клиента
         bot.database_client.clear_user_state_and_order(telegram_id)
         bot.database_client.update_user_state(telegram_id, "WAIT_FOR_PIZZA_NAME")
@@ -31,7 +33,7 @@ class MesageStart(Handler):
         )
 
         bot.telegram_client.sendMessage(
-            chat_id=update["message"]["chat"]["id"],
+            chat_id=chat_id,
             text="Пожалуйста выбери пиццу",
             reply_markup=json.dumps(
                 {

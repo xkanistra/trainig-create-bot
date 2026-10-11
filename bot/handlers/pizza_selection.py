@@ -8,7 +8,6 @@ from bot.handlers.handler import Handler, HandlerStatus
 
 class PizzaSelection(Handler):
     def can_handle(self, update: dict, state: str, order_json: dict) -> bool:
-        print(f"DEBUG: Текущее состояние из БД = '{state}'")
         # Если нету callback в update, вернуть False
         if "callback_query" not in update:
             return False
@@ -26,23 +25,36 @@ class PizzaSelection(Handler):
     def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus:
         # Достаем telegram_id и callback_data из update. Они точно есть т.к can_handle это проверяет
         telegram_id = update["callback_query"]["from"]["id"]
+        chat_id = update["callback_query"]["message"]["chat"]["id"]
+        message_id = update["callback_query"]["message"]["message_id"]
+
         callback_data = update["callback_query"]["data"]
 
-        # Форматируем название пиццы из callback, убираем pizza_ , _ и приводим к верх.регистру
-        pizza_name = callback_data.replace("pizza_", "").replace("_", " ").title()
+        # Добавляем маппинг по имени для красивого вывода в БД
+        name_mapping = {
+            "pizza_margherita": "Маргарита",
+            "pizza_pepperoni": "Пепперони",
+            "pizza_quatro_stagioni": "Четыре сыра",
+            "pizza_capricciosa": "Капричоза",
+            "pizza_diavola": "Дьявола",
+            "pizza_prosciutto": "Прошутто",
+        }
+
+        # Добавляем переменные для явного четния кода
+        pizza_name = name_mapping.get(callback_data)
+        order_json["pizza_name"] = pizza_name
+
         # Блок обновляет состояние и добавляет название заказываемой пиццы
-        bot.database_client.update_user_order_json(telegram_id, {"pizza_name": pizza_name})
+        bot.database_client.update_user_order_json(telegram_id, order_json)
         bot.database_client.update_user_state(telegram_id, "WAIT_FOR_PIZZA_SIZE")
 
         # Данная строка убирает визуальное колесо загрузки
         bot.telegram_client.answerCallbackQuery(update["callback_query"]["id"])
-        # Функция удаляет предыдущее сообщение, чтобы не было историй СМС от бота
-        bot.telegram_client.deleteMessage(
-            chat_id=update["callback_query"]["message"]["chat"]["id"],
-            message_id=update["callback_query"]["message"]["message_id"],
-        )
-        bot.telegram_client.sendMessage(
-            chat_id=update["callback_query"]["message"]["chat"]["id"],
+
+        bot.telegram_client.makeRequest(
+            "editMessageText",
+            chat_id=chat_id,
+            message_id=message_id,
             text="Пожалуйста выберите размер пиццы",
             reply_markup=json.dumps(
                 {
@@ -58,8 +70,11 @@ class PizzaSelection(Handler):
                                 "callback_data": "size_xl",
                             },
                         ],
+                        [
+                            {"text": "⬅️ Назад", "callback_data": "back_to_pizza_name"},
+                        ],
                     ]
                 }
-            ),
+            )
         )
         return HandlerStatus.STOP

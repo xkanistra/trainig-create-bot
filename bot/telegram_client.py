@@ -28,14 +28,19 @@ def makeRequest(method: str, **param) -> dict:
 
     # Как отправить данные. Работает так же как и на открытие файлов (сам закрывает, не нужен closed)
     # В respone храниться ответ на наш запрос, как при открытии файла, мы помещаем данные в переменную
-    with urllib.request.urlopen(request) as response:
-        # Получаем тело ответа, для этого:
-        # методом read читаем ответ, методом decode декодируем в utf-8
-        response_body = response.read().decode("utf-8")
-        # Получаем json ответ
-        response_json = json.loads(response_body)
-        # Возвращаем ответ
-        return response_json["result"]
+    try:
+        with urllib.request.urlopen(request) as response:
+            # Получаем тело ответа, для этого:
+            # методом read читаем ответ, методом decode декодируем в utf-8
+            response_body = response.read().decode("utf-8")
+            # Получаем json ответ
+            response_json = json.loads(response_body)
+            # Возвращаем ответ
+            return response_json["result"]
+    except urllib.error.HTTPError as e:
+        # Это напечатает точную причину ошибки от самого Телеграма!
+        print("Telegram API Error Body:", e.read().decode("utf-8"))
+        raise e
 
 
 # Метод getUpdates запрашивает данные с сервера
@@ -66,4 +71,6 @@ def deleteMessage(chat_id: int, message_id: int) -> dict:
 
 
 def answerCallbackQuery(callback_query_id: str, **kwargs) -> dict:
-    return makeRequest("answerCallbackQuery", callback_query_id=callback_query_id, **kwargs)
+    return makeRequest(
+        "answerCallbackQuery", callback_query_id=callback_query_id, **kwargs
+    )
