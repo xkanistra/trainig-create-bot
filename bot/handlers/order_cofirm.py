@@ -42,8 +42,8 @@ class OrderConfirm(Handler):
                     "inline_keyboard": [
                         [
                             {
-                                "text": "Сделать заказ",
-                                "callback_data": "place_order",
+                                "text": "Сделать новый заказ",
+                                "callback_data": "new_order",
                             },
                         ],
                     ]
