@@ -1,6 +1,5 @@
 # Хендлер отправляет сообщ при входе пользователя
 
-from email import message
 import json
 import bot.telegram_client
 import bot.database_client
