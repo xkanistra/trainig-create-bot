@@ -124,15 +124,13 @@ def update_user_order_json(telegram_id: int, order_json: str) -> None:
             )
 
 
-def get_order_json(telegram_id: int, order_json: str) -> dict:
+def get_order_json(telegram_id: int) -> dict:
     with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection:
         with connection:
             cursor = connection.execute(
                 "SELECT order_json FROM users WHERE telegram_id = ?", (telegram_id,)
             )
         result = cursor.fetchone()
-        if result:
-            return {"order_json": result[0]}
+        if result and result[0]:
+            return json.loads(result[0])
         return None
-
-    

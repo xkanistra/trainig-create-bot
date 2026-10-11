@@ -24,6 +24,20 @@ class WaitForOrder(Handler):
 
         callback_data = update["callback_query"]["data"]
 
+        # Установка дефолтных состояний на случай краша БД
+        pizza_name = "Не выбрана"
+        pizza_size = "Не выбран"
+        drink_name = "Не выбран"
+
+        # Берем данные о заказе
+        order = bot.database_client.get_order_json(telegram_id)
+
+        # Записываем данные о заказе для дальнейшего вывода
+        if order:
+            pizza_name = order.get("pizza_name", "Не выбрана")
+            pizza_size = order.get("pizza_size", "Не выбран")
+            drink_name = order.get("drink_name", "Не выбран")
+
         drink_mapping = {
             "drink_coca_cola": "Coca-Cola",
             "drink_fanta": "Fanta",
@@ -38,30 +52,31 @@ class WaitForOrder(Handler):
         bot.database_client.update_user_order_json(telegram_id, order_json)
         bot.database_client.update_user_state(telegram_id, "WAIT_FOR_ORDER")
 
-        bot.telegram_client.answerCallbackQuery(update["callback_query"]["id"])
+        try:
+            bot.telegram_client.answerCallbackQuery(update["callback_query"]["id"])
+        except Exception:
+            pass
 
         bot.telegram_client.makeRequest(
             "editMessageText",
             chat_id=chat_id,
             message_id=message_id,
-            text=f"Подтвердите ваш заказ:\n",
+            text=f"Подтвердите ваш заказ:\nПицца: {pizza_name}\nРазмер: {pizza_size}\nНапиток: {drink_name}",
             reply_markup=json.dumps(
                 {
                     "inline_keyboard": [
                         [
-                            {"text": "Coca-Cola", "callback_data": "drink_coca_cola"},
-                            {"text": "Fanta", "callback_data": "drink_fanta"},
+                            {
+                                "text": "✅ Всё верно, заказываю!",
+                                "callback_data": "order_confirm",
+                            },
+                            {
+                                "text": "❌ Отменить заказ",
+                                "callback_data": "order_cancel",
+                            },
                         ],
                         [
-                            {"text": "Pepsi", "callback_data": "drink_pepsi"},
-                            {"text": "7-Up", "callback_data": "drink_7_up"},
-                        ],
-                        [
-                            {"text": "Вода", "callback_data": "drink_water"},
-                            {"text": "Без напитка", "callback_data": "drink_none"},
-                        ],
-                        [
-                            {"text": "⬅️ Назад", "callback_data": "back_to_pizza_size"},
+                            {"text": "⬅️ Назад", "callback_data": "back_to_drink"},
                         ],
                     ]
                 }

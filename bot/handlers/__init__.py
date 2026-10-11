@@ -8,6 +8,7 @@ from bot.handlers.message_start import MesageStart
 from bot.handlers.pizza_selection import PizzaSelection
 from bot.handlers.pizza_size import PizzaSize
 from bot.handlers.update_database_logger import UpdateDatabaseLogger
+from bot.handlers.wait_for_order import WaitForOrder
 
 
 def get_handlers() -> list[Handler]:
@@ -18,4 +19,5 @@ def get_handlers() -> list[Handler]:
         PizzaSelection(),
         MesageStart(),
         PizzaSize(),
+        WaitForOrder(),
     ]
