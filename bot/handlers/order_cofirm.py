@@ -1,6 +1,7 @@
 # Хендлер принимает подтверждение заказа
 
 import json
+import urllib.error
 
 from bot.domain.messenger import Messenger
 from bot.domain.storage import Storage
@@ -44,7 +45,8 @@ class OrderConfirm(Handler):
 
         try:
             messenger.answerCallbackQuery(update["callback_query"]["id"])
-        except Exception:
+        # Перехватываем только ошибки сети Telegram API
+        except urllib.error.HTTPError:
             pass
 
         messenger.makeRequest(

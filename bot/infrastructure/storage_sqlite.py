@@ -91,23 +91,22 @@ class StorageSqlite(Storage):
     # Функция достает пользовательский id
     def get_user(self, telegram_id: int) -> dict | None:
         with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection:
-            with connection:
-                # Запрос в БД по telegram_id
-                cursor = connection.execute(
-                    "SELECT id, telegram_id, created_ad, state, order_json FROM users WHERE telegram_id = (?)",
-                    (telegram_id,),
-                )
-                # Достаем только одну запись, т.к telegram_id уникален
-                result = cursor.fetchone()
-                if result:
-                    return {
-                        "id": result[0],
-                        "telegram_id": result[1],
-                        "created_ad": result[2],
-                        "state": result[3],
-                        "order_json": result[4],
-                    }
-                return None
+            # Запрос в БД по telegram_id
+            cursor = connection.execute(
+                "SELECT id, telegram_id, created_ad, state, order_json FROM users WHERE telegram_id = (?)",
+                (telegram_id,),
+            )
+            # Достаем только одну запись, т.к telegram_id уникален
+            result = cursor.fetchone()
+            if result:
+                return {
+                    "id": result[0],
+                    "telegram_id": result[1],
+                    "created_ad": result[2],
+                    "state": result[3],
+                    "order_json": result[4],
+                }
+            return None
 
     # Функция по telegram_id пользователю в order_json записывает данные
     def update_user_order_json(self, telegram_id: int, order_json: str) -> None:
