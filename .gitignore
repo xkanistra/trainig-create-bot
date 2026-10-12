@@ -6,3 +6,4 @@ venv/
 *.sqlite3
 *.sqlite-journal
 .ruff_cache
+.pytest_cache
