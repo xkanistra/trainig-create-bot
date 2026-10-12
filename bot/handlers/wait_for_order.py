@@ -2,13 +2,22 @@
 
 import json
 
-import bot.database_client
-import bot.telegram_client
+from bot.domain.messenger import Messenger
+from bot.domain.storage import Storage
+import bot.infrastructure.storage_sqlite
+import bot.infrastructure.messanger_telegram
 from bot.handlers.handler import Handler, HandlerStatus
 
 
 class WaitForOrder(Handler):
-    def can_handle(self, update: dict, state: str, order_json: dict) -> bool:
+    def can_handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> bool:
         if "callback_query" not in update:
             return False
 
@@ -18,7 +27,14 @@ class WaitForOrder(Handler):
         callback_data = update["callback_query"]["data"]
         return callback_data.startswith("drink_")
 
-    def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus:
+    def handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> HandlerStatus:
         telegram_id = update["callback_query"]["from"]["id"]
         chat_id = update["callback_query"]["message"]["chat"]["id"]
         message_id = update["callback_query"]["message"]["message_id"]
@@ -31,7 +47,7 @@ class WaitForOrder(Handler):
         drink_name = "Не выбран"
 
         # Берем данные о заказе
-        order = bot.database_client.get_order_json(telegram_id)
+        order = storage.get_order_json(telegram_id)
 
         # Записываем данные о заказе для дальнейшего вывода
         if order:
@@ -51,15 +67,15 @@ class WaitForOrder(Handler):
         drink_name = drink_mapping.get(callback_data)
         order_json["drink_name"] = drink_name
 
-        bot.database_client.update_user_order_json(telegram_id, order_json)
-        bot.database_client.update_user_state(telegram_id, "WAIT_FOR_ORDER")
+        storage.update_user_order_json(telegram_id, order_json)
+        storage.update_user_state(telegram_id, "WAIT_FOR_ORDER")
 
         try:
-            bot.telegram_client.answerCallbackQuery(update["callback_query"]["id"])
+            messenger.answerCallbackQuery(update["callback_query"]["id"])
         except Exception:
             pass
 
-        bot.telegram_client.makeRequest(
+        messenger.makeRequest(
             "editMessageText",
             chat_id=chat_id,
             message_id=message_id,

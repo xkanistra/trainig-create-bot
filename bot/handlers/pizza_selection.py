@@ -2,13 +2,22 @@
 
 import json
 
-import bot.database_client
-import bot.telegram_client
+from bot.domain.messenger import Messenger
+from bot.domain.storage import Storage
+import bot.infrastructure.storage_sqlite
+import bot.infrastructure.messanger_telegram
 from bot.handlers.handler import Handler, HandlerStatus
 
 
 class PizzaSelection(Handler):
-    def can_handle(self, update: dict, state: str, order_json: dict) -> bool:
+    def can_handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> bool:
         # Если нету callback в update, вернуть False
         if "callback_query" not in update:
             return False
@@ -23,7 +32,14 @@ class PizzaSelection(Handler):
         callback_data = update["callback_query"]["data"]
         return callback_data.startswith("pizza_")
 
-    def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus:
+    def handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> HandlerStatus:
         # Достаем telegram_id и callback_data из update. Они точно есть т.к can_handle это проверяет
         telegram_id = update["callback_query"]["from"]["id"]
         chat_id = update["callback_query"]["message"]["chat"]["id"]
@@ -46,13 +62,13 @@ class PizzaSelection(Handler):
         order_json["pizza_name"] = pizza_name
 
         # Блок обновляет состояние и добавляет название заказываемой пиццы
-        bot.database_client.update_user_order_json(telegram_id, order_json)
-        bot.database_client.update_user_state(telegram_id, "WAIT_FOR_PIZZA_SIZE")
+        storage.update_user_order_json(telegram_id, order_json)
+        storage.update_user_state(telegram_id, "WAIT_FOR_PIZZA_SIZE")
 
         # Данная строка убирает визуальное колесо загрузки
-        bot.telegram_client.answerCallbackQuery(update["callback_query"]["id"])
+        messenger.answerCallbackQuery(update["callback_query"]["id"])
 
-        bot.telegram_client.makeRequest(
+        messenger.makeRequest(
             "editMessageText",
             chat_id=chat_id,
             message_id=message_id,

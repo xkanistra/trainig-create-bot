@@ -5,3 +5,4 @@ venv/
 *.sqlite
 *.sqlite3
 *.sqlite-journal
+.ruff_cache

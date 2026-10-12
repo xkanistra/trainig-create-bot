@@ -2,13 +2,23 @@
 
 import json
 
-import bot.database_client
-import bot.telegram_client
+from bot.domain.messenger import Messenger
+from bot.domain.storage import Storage
+import bot.infrastructure.storage_sqlite
+import bot.infrastructure.messanger_telegram
 from bot.handlers.handler import Handler, HandlerStatus
 
 
 class Back(Handler):
-    def can_handle(self, update: dict, state: str, order_json: dict) -> bool:
+    def can_handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> bool:
+
         # Если нету callback в update, вернуть False
         if "callback_query" not in update:
             return False
@@ -18,7 +28,14 @@ class Back(Handler):
         callback_data = update["callback_query"]["data"]
         return callback_data.startswith("back_")
 
-    def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus:
+    def handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> HandlerStatus:
         # Достаем данные для управления дальнейшего сообщением через метод editMessageText отправленный в makeRequest
         telegram_id = update["callback_query"]["from"]["id"]
         chat_id = update["callback_query"]["message"]["chat"]["id"]
@@ -26,19 +43,19 @@ class Back(Handler):
 
         callback_data = update["callback_query"]["data"]
 
-        bot.telegram_client.answerCallbackQuery(update["callback_query"]["id"])
+        messenger.answerCallbackQuery(update["callback_query"]["id"])
 
         next_text = ""
         next_keyboard = []
 
         if callback_data == "back_to_pizza_name":
             # Возвращаем состояние с выбора размера на выбор пиццы
-            bot.database_client.update_user_state(telegram_id, "WAIT_FOR_PIZZA_NAME")
+            storage.update_user_state(telegram_id, "WAIT_FOR_PIZZA_NAME")
 
             # Очищаем заказ т.к вернулись в самое начало
             if "pizza_name" in order_json:
                 del order_json["pizza_name"]
-                bot.database_client.update_user_order_json(telegram_id, order_json)
+                storage.update_user_order_json(telegram_id, order_json)
 
             next_text = "Выберите пиццу (Вы вернулись назад)"
             next_keyboard = [
@@ -61,12 +78,12 @@ class Back(Handler):
 
         elif callback_data == "back_to_pizza_size":
             # Возвращаем состояние с выбора размера на выбор пиццы
-            bot.database_client.update_user_state(telegram_id, "WAIT_FOR_PIZZA_SIZE")
+            storage.update_user_state(telegram_id, "WAIT_FOR_PIZZA_SIZE")
 
             # Очищаем заказ т.к вернулись в самое начало
             if "pizza_size" in order_json:
                 del order_json["pizza_size"]
-                bot.database_client.update_user_order_json(telegram_id, order_json)
+                storage.update_user_order_json(telegram_id, order_json)
 
             next_text = "Выберите размер пиццы (Вы вернулись назад)"
             next_keyboard = [
@@ -85,12 +102,14 @@ class Back(Handler):
 
         elif callback_data == "back_to_drink":
             # Возвращаем состояние с выбора размера на выбор пиццы
-            bot.database_client.update_user_state(telegram_id, "WAIT_FOR_DRINKS")
+            storage.update_user_state(telegram_id, "WAIT_FOR_DRINKS")
 
             # Очищаем заказ т.к вернулись в самое начало
             if "drink_name" in order_json:
                 del order_json["drink_name"]
-                bot.database_client.update_user_order_json(telegram_id, order_json)
+                bot.infrastructure.storage_sqlite.update_user_order_json(
+                    telegram_id, order_json
+                )
 
             next_text = "Выберите напиток (Вы вернулись назад)"
             next_keyboard = [
@@ -113,7 +132,7 @@ class Back(Handler):
 
         # Отправляем обновленный запрос меняющий текст, а не удаляющий его и отправляющий новый
         if next_text:
-            bot.telegram_client.makeRequest(
+            messenger.makeRequest(
                 "editMessageText",
                 chat_id=chat_id,
                 message_id=message_id,

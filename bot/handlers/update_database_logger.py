@@ -1,16 +1,32 @@
 # Хендлер записывает информацию в БД
 
-import bot.database_client
+from bot.domain.messenger import Messenger
+from bot.domain.storage import Storage
+import bot.infrastructure.storage_sqlite
 from bot.handlers.handler import Handler, HandlerStatus
 
 
 class UpdateDatabaseLogger(Handler):
-    def can_handle(self, update: dict, state: str, order_json: dict) -> bool:
+    def can_handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> bool:
         # Возвращает True при любом типе данных
         return True
 
-    def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus:
+    def handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> HandlerStatus:
         # Записыва все полученные данные в БД и возвращаем True, чтобы
         # перешло к другому хендлеру
-        bot.database_client.persist_updates([update])
+        storage.persist_updates([update])
         return HandlerStatus.CONTINUE

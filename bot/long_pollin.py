@@ -2,18 +2,20 @@
 
 import time
 
-import bot.telegram_client
+from bot.domain.messenger import Messenger
+from bot.domain.storage import Storage
+import bot.infrastructure.messanger_telegram
 from bot.dispatcher import Dispatcher
 
 
 # Принимает диспатчер
-def start_long_polling(dispatcher: Dispatcher) -> None:
+def start_long_polling(dispatcher: Dispatcher, messenger: Messenger) -> None:
     next_update_offset = 0
     while True:
         # Вызывает getUpdate
         ## Явно указывает что передаем в переменную
         ### UPD. Указываем какие обновления хотим получать в allowed_updates
-        updates = bot.telegram_client.getUpdates(
+        updates = messenger.getUpdates(
             offset=next_update_offset, allowed_updates=["message", "callback_query"]
         )
         # Проходитт по всем update

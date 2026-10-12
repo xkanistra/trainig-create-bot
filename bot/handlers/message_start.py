@@ -2,13 +2,22 @@
 
 import json
 
-import bot.database_client
-import bot.telegram_client
+from bot.domain.messenger import Messenger
+from bot.domain.storage import Storage
+import bot.infrastructure.storage_sqlite
+import bot.infrastructure.messanger_telegram
 from bot.handlers.handler import Handler, HandlerStatus
 
 
 class MesageStart(Handler):
-    def can_handle(self, update: dict, state: str, order_json: dict) -> bool:
+    def can_handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> bool:
         # Проверяем условия при отправке смс, что отбросит любой шанс сломать бота смс
         if (
             "message" in update
@@ -17,9 +26,19 @@ class MesageStart(Handler):
         ):
             return True
 
-        return bool("callback_query" in update and update["callback_query"]["data"].startswith("new_"))
+        return bool(
+            "callback_query" in update
+            and update["callback_query"]["data"].startswith("new_")
+        )
 
-    def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus:
+    def handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> HandlerStatus:
         # Фильтруем приходящее сообщение, либо это /start либо callback и исходя из этого берем данные
         if "callback_query" not in update:
             telegram_id = update["message"]["from"]["id"]
@@ -58,27 +77,27 @@ class MesageStart(Handler):
             }
         )
         # Очищает заказ клиента
-        bot.database_client.clear_user_state_and_order(telegram_id)
-        bot.database_client.update_user_state(telegram_id, "WAIT_FOR_PIZZA_NAME")
+        storage.clear_user_state_and_order(telegram_id)
+        storage.update_user_state(telegram_id, "WAIT_FOR_PIZZA_NAME")
 
         if message_command:
-            bot.telegram_client.sendMessage(
+            messenger.sendMessage(
                 chat_id=update["message"]["chat"]["id"],
                 text="Добро пожаловать в Пиццерию!",
                 reply_markup=json.dumps({"remove_keyboard": True}),
             )
 
-            bot.telegram_client.sendMessage(
+            messenger.sendMessage(
                 chat_id=chat_id,
                 text="Пожалуйста выберите пиццу",
                 reply_markup=pizza_keyboard,
             )
         else:
             try:
-                bot.telegram_client.answerCallbackQuery(update["callback_query"]["id"])
+                messenger.answerCallbackQuery(update["callback_query"]["id"])
             except Exception:
                 pass
-            bot.telegram_client.makeRequest(
+            messenger.makeRequest(
                 "editMessageText",
                 chat_id=chat_id,
                 message_id=message_id,

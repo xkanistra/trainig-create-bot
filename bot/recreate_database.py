@@ -1,4 +1,4 @@
 # Создание базы данных
-import bot.database_client
+import bot.infrastructure.storage_sqlite
 
-bot.database_client.recreate_database()
+bot.infrastructure.storage_sqlite.recreate_database()

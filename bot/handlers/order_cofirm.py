@@ -2,13 +2,22 @@
 
 import json
 
-import bot.database_client
-import bot.telegram_client
+from bot.domain.messenger import Messenger
+from bot.domain.storage import Storage
+import bot.infrastructure.storage_sqlite
+import bot.infrastructure.messanger_telegram
 from bot.handlers.handler import Handler, HandlerStatus
 
 
 class OrderConfirm(Handler):
-    def can_handle(self, update: dict, state: str, order_json: dict) -> bool:
+    def can_handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> bool:
         if "callback_query" not in update:
             return False
 
@@ -18,22 +27,29 @@ class OrderConfirm(Handler):
         callback_data = update["callback_query"]["data"]
         return callback_data.startswith("confirm_")
 
-    def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus:
+    def handle(
+        self,
+        update: dict,
+        state: str,
+        order_json: dict,
+        storage: Storage,
+        messenger: Messenger,
+    ) -> HandlerStatus:
         telegram_id = update["callback_query"]["from"]["id"]
         chat_id = update["callback_query"]["message"]["chat"]["id"]
         message_id = update["callback_query"]["message"]["message_id"]
 
         update["callback_query"]["data"]
 
-        bot.database_client.update_user_order_json(telegram_id, order_json)
-        bot.database_client.update_user_state(telegram_id, "ORDER_CONFIRM")
+        storage.update_user_order_json(telegram_id, order_json)
+        storage.update_user_state(telegram_id, "ORDER_CONFIRM")
 
         try:
-            bot.telegram_client.answerCallbackQuery(update["callback_query"]["id"])
+            messenger.answerCallbackQuery(update["callback_query"]["id"])
         except Exception:
             pass
 
-        bot.telegram_client.makeRequest(
+        messenger.makeRequest(
             "editMessageText",
             chat_id=chat_id,
             message_id=message_id,
