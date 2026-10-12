@@ -2,8 +2,6 @@
 
 import json
 
-import bot.infrastructure.messanger_telegram
-import bot.infrastructure.storage_sqlite
 from bot.domain.messenger import Messenger
 from bot.domain.storage import Storage
 from bot.handlers.handler import Handler, HandlerStatus
@@ -107,9 +105,7 @@ class Back(Handler):
             # Очищаем заказ т.к вернулись в самое начало
             if "drink_name" in order_json:
                 del order_json["drink_name"]
-                bot.infrastructure.storage_sqlite.update_user_order_json(
-                    telegram_id, order_json
-                )
+                storage.update_user_order_json(telegram_id, order_json)
 
             next_text = "Выберите напиток (Вы вернулись назад)"
             next_keyboard = [

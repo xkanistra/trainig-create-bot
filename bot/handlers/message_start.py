@@ -7,7 +7,7 @@ from bot.domain.storage import Storage
 from bot.handlers.handler import Handler, HandlerStatus
 
 
-class MesageStart(Handler):
+class MessageStart(Handler):
     def can_handle(
         self,
         update: dict,
@@ -80,7 +80,7 @@ class MesageStart(Handler):
 
         if message_command:
             messenger.sendMessage(
-                chat_id=update["message"]["chat"]["id"],
+                chat_id=chat_id,
                 text="Добро пожаловать в Пиццерию!",
                 reply_markup=json.dumps({"remove_keyboard": True}),
             )
