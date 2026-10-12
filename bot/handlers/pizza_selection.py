@@ -75,6 +75,6 @@ class PizzaSelection(Handler):
                         ],
                     ]
                 }
-            )
+            ),
         )
         return HandlerStatus.STOP

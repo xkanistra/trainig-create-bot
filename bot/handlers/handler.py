@@ -17,7 +17,7 @@ class Handler(ABC):
     @abstractmethod
     def can_handle(self, update: dict, state: str, order_json: dict) -> bool: ...
 
-    # Возвращает константы. 
+    # Возвращает константы.
     # CONTINUE - переход к след. хендлеру
     # STOP - остановка обработки update
     @abstractmethod

@@ -18,6 +18,6 @@ class EnsureUsersExists(Handler):
             telegram_id = update["message"]["from"]["id"]
         else:
             telegram_id = update["callback_query"]["from"]["id"]
-            
+
         bot.database_client.ensure_users_exists(telegram_id)
         return HandlerStatus.CONTINUE
