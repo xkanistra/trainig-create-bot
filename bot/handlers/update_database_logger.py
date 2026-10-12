@@ -2,7 +2,6 @@
 
 from bot.domain.messenger import Messenger
 from bot.domain.storage import Storage
-import bot.infrastructure.storage_sqlite
 from bot.handlers.handler import Handler, HandlerStatus
 
 

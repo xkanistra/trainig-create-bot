@@ -2,10 +2,8 @@
 
 import json
 
-from bot.domain import storage
 from bot.domain.messenger import Messenger
 from bot.domain.storage import Storage
-import bot.infrastructure.storage_sqlite
 from bot.handlers.handler import Handler, HandlerStatus
 from bot.tools.json_inspector import inspect
 
