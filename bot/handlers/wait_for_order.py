@@ -1,8 +1,9 @@
 # Хендлер подтверждения заказа
 
 import json
-import bot.telegram_client
+
 import bot.database_client
+import bot.telegram_client
 from bot.handlers.handler import Handler, HandlerStatus
 
 

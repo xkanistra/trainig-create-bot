@@ -1,6 +1,7 @@
 # Написание диспетчера
 
 import json
+
 import bot.database_client
 from bot.handlers.handler import Handler, HandlerStatus
 from bot.tools.json_inspector import inspect

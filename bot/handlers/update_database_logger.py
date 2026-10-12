@@ -1,7 +1,7 @@
 # Хендлер записывает информацию в БД
 
-from bot.handlers.handler import Handler, HandlerStatus
 import bot.database_client
+from bot.handlers.handler import Handler, HandlerStatus
 
 
 class UpdateDatabaseLogger(Handler):

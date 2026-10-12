@@ -1,8 +1,9 @@
 # Хендлер отправляет сообщ при входе пользователя
 
 import json
-import bot.telegram_client
+
 import bot.database_client
+import bot.telegram_client
 from bot.handlers.handler import Handler, HandlerStatus
 
 
@@ -16,12 +17,7 @@ class MesageStart(Handler):
         ):
             return True
 
-        if "callback_query" in update and update["callback_query"]["data"].startswith(
-            "new_"
-        ):
-            return True
-
-        return False
+        return bool("callback_query" in update and update["callback_query"]["data"].startswith("new_"))
 
     def handle(self, update: dict, state: str, order_json: dict) -> HandlerStatus:
         # Фильтруем приходящее сообщение, либо это /start либо callback и исходя из этого берем данные
@@ -32,7 +28,7 @@ class MesageStart(Handler):
             telegram_id = update["callback_query"]["from"]["id"]
             chat_id = update["callback_query"]["message"]["chat"]["id"]
             message_id = update["callback_query"]["message"]["message_id"]
-            callback_data = update["callback_query"]["data"]
+            update["callback_query"]["data"]
 
         message_command = (
             "message" in update

@@ -1,8 +1,9 @@
 # Вынесли в отдельный файл работу long_polling
 
-from bot.dispatcher import Dispatcher
-import bot.telegram_client
 import time
+
+import bot.telegram_client
+from bot.dispatcher import Dispatcher
 
 
 # Принимает диспатчер

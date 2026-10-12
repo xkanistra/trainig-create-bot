@@ -1,7 +1,7 @@
-import re
-import sqlite3
 import json
+import sqlite3
 from os import getenv
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -74,22 +74,20 @@ def ensure_users_exists(telegram_id: int) -> None:
 
 # Очищает заказ пользователя
 def clear_user_state_and_order(telegram_id: int) -> None:
-    with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection:
-        with connection:
-            connection.execute(
-                "UPDATE users SET state = NULL, order_json = NULL WHERE telegram_id = ?",
-                (telegram_id,),
-            )
+    with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection, connection:
+        connection.execute(
+            "UPDATE users SET state = NULL, order_json = NULL WHERE telegram_id = ?",
+            (telegram_id,),
+        )
 
 
 # Обновляет состояние пользователя
 def update_user_state(telegram_id: int, state: str) -> None:
-    with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection:
-        with connection:
-            connection.execute(
-                "UPDATE users SET state = ? WHERE telegram_id = ?",
-                (state, telegram_id),
-            )
+    with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection, connection:
+        connection.execute(
+            "UPDATE users SET state = ? WHERE telegram_id = ?",
+            (state, telegram_id),
+        )
 
 
 # Функция достает пользовательский id
@@ -116,12 +114,11 @@ def get_user(telegram_id: int) -> dict | None:
 
 # Функция по telegram_id пользователю в order_json записывает данные
 def update_user_order_json(telegram_id: int, order_json: str) -> None:
-    with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection:
-        with connection:
-            connection.execute(
-                "UPDATE users SET order_json = ? WHERE telegram_id = ?",
-                (json.dumps(order_json, ensure_ascii=False, indent=2), telegram_id),
-            )
+    with sqlite3.connect(getenv("SQLITE_DATABASE_PATH")) as connection, connection:
+        connection.execute(
+            "UPDATE users SET order_json = ? WHERE telegram_id = ?",
+            (json.dumps(order_json, ensure_ascii=False, indent=2), telegram_id),
+        )
 
 
 def get_order_json(telegram_id: int) -> dict:

@@ -1,6 +1,7 @@
 import json
 import urllib.request
 from os import getenv
+
 from dotenv import load_dotenv
 
 # Функция читает файл .env и загружает все данные из него в приложение
@@ -40,7 +41,7 @@ def makeRequest(method: str, **param) -> dict:
     except urllib.error.HTTPError as e:
         # Это напечатает точную причину ошибки от самого Телеграма!
         print("Telegram API Error Body:", e.read().decode("utf-8"))
-        raise e
+        raise
 
 
 # Метод getUpdates запрашивает данные с сервера

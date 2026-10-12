@@ -1,8 +1,9 @@
 # Хендлер принимает подтверждение заказа
 
 import json
-import bot.telegram_client
+
 import bot.database_client
+import bot.telegram_client
 from bot.handlers.handler import Handler, HandlerStatus
 
 
@@ -22,7 +23,7 @@ class OrderConfirm(Handler):
         chat_id = update["callback_query"]["message"]["chat"]["id"]
         message_id = update["callback_query"]["message"]["message_id"]
 
-        callback_data = update["callback_query"]["data"]
+        update["callback_query"]["data"]
 
         bot.database_client.update_user_order_json(telegram_id, order_json)
         bot.database_client.update_user_state(telegram_id, "ORDER_CONFIRM")
