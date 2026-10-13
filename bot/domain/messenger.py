@@ -20,3 +20,16 @@ class Messenger(ABC):
 
     @abstractmethod
     def answerCallbackQuery(self, callback_query_id: str, **kwargs) -> dict: ...
+
+    @abstractmethod
+    def sendInvoice(
+        self,
+        chat_id: int,
+        title: str,
+        description: str,
+        payload: str,
+        provider_token: str,
+        currency: str,
+        prices: list,
+        **kwargs
+    ): ...

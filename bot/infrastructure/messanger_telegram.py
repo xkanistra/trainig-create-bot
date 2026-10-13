@@ -15,7 +15,7 @@ class MessengerTelegram(Messenger):
     # Функцией фиксим дублирование кода
     # method - принимает любые методы для объектов
     # **param передает любой набор параметров, благодаря **
-    def makeRequest(self, method: str, **param) -> dict:
+    def __makeRequest(self, method: str, **param) -> dict:
         # Строкой заменяем переменную data в строках 26, 50 и т.п.
         json_data = json.dumps(param).encode("utf-8")
         # Создает объект запроса, но сам запрос ещё не отправлен, указывает куда будем отправлять запрос
@@ -53,23 +53,48 @@ class MessengerTelegram(Messenger):
     ## Тоже самое делает в main
     def getUpdates(self, **params) -> dict:
         # Используем новую функцию для создания универсальных запросов
-        return self.makeRequest("getUpdates", **params)
+        return self.__makeRequest("getUpdates", **params)
 
     # sendMessage принимает сообщения которые отправлены в бота
     # так же принимает аргументами параметры для sendMessage
     ## UPD: Явно указываем что могут быть и другие параметры
     def sendMessage(self, chat_id: int, text: str, **params) -> dict:
-        return self.makeRequest("sendMessage", chat_id=chat_id, text=text, **params)
+        return self.__makeRequest("sendMessage", chat_id=chat_id, text=text, **params)
 
     # getMe способ тестирования токена аутентификации вашего бота. Не требуется никаких параметров
     def getMe(self) -> dict:
-        return self.makeRequest("getMe")
+        return self.__makeRequest("getMe")
 
     # Удаляет сообщение бота
     def deleteMessage(self, chat_id: int, message_id: int) -> dict:
-        return self.makeRequest("deleteMessage", chat_id=chat_id, message_id=message_id)
+        return self.__makeRequest(
+            "deleteMessage", chat_id=chat_id, message_id=message_id
+        )
 
     def answerCallbackQuery(self, callback_query_id: str, **kwargs) -> dict:
-        return self.makeRequest(
+        return self.__makeRequest(
             "answerCallbackQuery", callback_query_id=callback_query_id, **kwargs
+        )
+
+    def sendInvoice(
+        self,
+        chat_id,
+        title,
+        description,
+        payload,
+        provider_token,
+        currency,
+        prices,
+        **kwargs,
+    ):
+        return self.__makeRequest(
+            "sendInvoice",
+            chat_id=chat_id,
+            title=title,
+            description=description,
+            payload=payload,
+            provider_token=provider_token,
+            currency=currency,
+            prices=prices,
+            **kwargs,
         )
