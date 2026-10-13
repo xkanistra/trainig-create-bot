@@ -32,4 +32,9 @@ class Messenger(ABC):
         currency: str,
         prices: list,
         **kwargs
-    ): ...
+    ) -> dict: ...
+
+    @abstractmethod
+    def answerPreCheckoutQuery(
+        pre_checkout_query_id: str, ok: bool, **kwargs
+    ) -> dict: ...
