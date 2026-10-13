@@ -3,6 +3,7 @@
 import json
 
 from bot.domain.messenger import Messenger
+from bot.domain.order_state import OrderState
 from bot.domain.storage import Storage
 from bot.handlers.handler import Handler, HandlerStatus
 
@@ -11,7 +12,7 @@ class Back(Handler):
     def can_handle(
         self,
         update: dict,
-        state: str,
+        state: OrderState,
         order_json: dict,
         storage: Storage,
         messenger: Messenger,
@@ -29,7 +30,7 @@ class Back(Handler):
     def handle(
         self,
         update: dict,
-        state: str,
+        state: OrderState,
         order_json: dict,
         storage: Storage,
         messenger: Messenger,
@@ -48,7 +49,7 @@ class Back(Handler):
 
         if callback_data == "back_to_pizza_name":
             # Возвращаем состояние с выбора размера на выбор пиццы
-            storage.update_user_state(telegram_id, "WAIT_FOR_PIZZA_NAME")
+            storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_NAME)
 
             # Очищаем заказ т.к вернулись в самое начало
             if "pizza_name" in order_json:
@@ -76,7 +77,7 @@ class Back(Handler):
 
         elif callback_data == "back_to_pizza_size":
             # Возвращаем состояние с выбора размера на выбор пиццы
-            storage.update_user_state(telegram_id, "WAIT_FOR_PIZZA_SIZE")
+            storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_SIZE)
 
             # Очищаем заказ т.к вернулись в самое начало
             if "pizza_size" in order_json:
@@ -100,7 +101,7 @@ class Back(Handler):
 
         elif callback_data == "back_to_drink":
             # Возвращаем состояние с выбора размера на выбор пиццы
-            storage.update_user_state(telegram_id, "WAIT_FOR_DRINKS")
+            storage.update_user_state(telegram_id, OrderState.WAIT_FOR_DRINKS)
 
             # Очищаем заказ т.к вернулись в самое начало
             if "drink_name" in order_json:

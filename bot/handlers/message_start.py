@@ -4,6 +4,7 @@ import json
 import urllib.error
 
 from bot.domain.messenger import Messenger
+from bot.domain.order_state import OrderState
 from bot.domain.storage import Storage
 from bot.handlers.handler import Handler, HandlerStatus
 
@@ -12,7 +13,7 @@ class MessageStart(Handler):
     def can_handle(
         self,
         update: dict,
-        state: str,
+        state: OrderState,
         order_json: dict,
         storage: Storage,
         messenger: Messenger,
@@ -33,7 +34,7 @@ class MessageStart(Handler):
     def handle(
         self,
         update: dict,
-        state: str,
+        state: OrderState,
         order_json: dict,
         storage: Storage,
         messenger: Messenger,
@@ -77,7 +78,7 @@ class MessageStart(Handler):
         )
         # Очищает заказ клиента
         storage.clear_user_state_and_order(telegram_id)
-        storage.update_user_state(telegram_id, "WAIT_FOR_PIZZA_NAME")
+        storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_NAME)
 
         if message_command:
             messenger.sendMessage(

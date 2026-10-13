@@ -3,6 +3,7 @@
 import json
 
 from bot.domain.messenger import Messenger
+from bot.domain.order_state import OrderState
 from bot.domain.storage import Storage
 from bot.handlers.handler import Handler, HandlerStatus
 
@@ -11,7 +12,7 @@ class PizzaSelection(Handler):
     def can_handle(
         self,
         update: dict,
-        state: str,
+        state: OrderState,
         order_json: dict,
         storage: Storage,
         messenger: Messenger,
@@ -22,7 +23,7 @@ class PizzaSelection(Handler):
 
         # Если состояние из которого пришел callback, состояние достает dispatch из БД
         # не равен выбору названия пиццы вернуть False
-        if state != "WAIT_FOR_PIZZA_NAME":
+        if state != OrderState.WAIT_FOR_PIZZA_NAME:
             return False
 
         # Достаем данные о пиццах, в дате будет название из callback_data
@@ -33,7 +34,7 @@ class PizzaSelection(Handler):
     def handle(
         self,
         update: dict,
-        state: str,
+        state: OrderState,
         order_json: dict,
         storage: Storage,
         messenger: Messenger,
@@ -61,7 +62,7 @@ class PizzaSelection(Handler):
 
         # Блок обновляет состояние и добавляет название заказываемой пиццы
         storage.update_user_order_json(telegram_id, order_json)
-        storage.update_user_state(telegram_id, "WAIT_FOR_PIZZA_SIZE")
+        storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_SIZE)
 
         # Данная строка убирает визуальное колесо загрузки
         messenger.answerCallbackQuery(update["callback_query"]["id"])

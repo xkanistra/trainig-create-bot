@@ -4,6 +4,7 @@ import json
 import urllib.error
 
 from bot.domain.messenger import Messenger
+from bot.domain.order_state import OrderState
 from bot.domain.storage import Storage
 from bot.handlers.handler import Handler, HandlerStatus
 
@@ -12,7 +13,7 @@ class OrderCancel(Handler):
     def can_handle(
         self,
         update: dict,
-        state: str,
+        state: OrderState,
         order_json: dict,
         storage: Storage,
         messenger: Messenger,
@@ -20,7 +21,7 @@ class OrderCancel(Handler):
         if "callback_query" not in update:
             return False
 
-        if state != "WAIT_FOR_ORDER":
+        if state != OrderState.WAIT_FOR_ORDER:
             return False
 
         callback_data = update["callback_query"]["data"]
@@ -29,7 +30,7 @@ class OrderCancel(Handler):
     def handle(
         self,
         update: dict,
-        state: str,
+        state: OrderState,
         order_json: dict,
         storage: Storage,
         messenger: Messenger,
@@ -39,7 +40,7 @@ class OrderCancel(Handler):
         message_id = update["callback_query"]["message"]["message_id"]
 
         storage.update_user_order_json(telegram_id, order_json)
-        storage.update_user_state(telegram_id, "ORDER_CANCEL")
+        storage.update_user_state(telegram_id, OrderState.ORDER_CANCEL)
 
         try:
             messenger.answerCallbackQuery(update["callback_query"]["id"])
