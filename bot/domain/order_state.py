@@ -1,6 +1,7 @@
 # Заменяем все вызовы состояний на константы
 from enum import Enum
 
+
 class OrderState(str, Enum):
     WAIT_FOR_PIZZA_NAME = "WAIT_FOR_PIZZA_NAME"
     WAIT_FOR_PIZZA_SIZE = "WAIT_FOR_PIZZA_SIZE"
