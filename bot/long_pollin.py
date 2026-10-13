@@ -14,7 +14,8 @@ def start_long_polling(dispatcher: Dispatcher, messenger: Messenger) -> None:
         ## Явно указывает что передаем в переменную
         ### UPD. Указываем какие обновления хотим получать в allowed_updates
         updates = messenger.getUpdates(
-            offset=next_update_offset, allowed_updates=["message", "callback_query", "pre_checkout_query"]
+            offset=next_update_offset,
+            allowed_updates=["message", "callback_query", "pre_checkout_query"],
         )
         # Проходитт по всем update
         for update in updates:

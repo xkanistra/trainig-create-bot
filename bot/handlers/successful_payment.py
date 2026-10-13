@@ -1,4 +1,5 @@
 import json
+import urllib.error
 
 from bot.domain.messenger import Messenger
 from bot.domain.order_state import OrderState
@@ -37,9 +38,9 @@ class SuccessfulPayment(Handler):
         # Удаляем старый инвойс, чтобы кнопка оплаты исчезла из чата
         try:
             messenger.deleteMessage(chat_id=chat_id, message_id=message_id)
-        except Exception:
+        except urllib.error.HTTPError:
             pass
-        
+
         # ИСПРАВЛЕНО: Полностью убрали json.loads!
         # !!ВАЖНО!! УБРАННО Т.К ИСПОЛЬЗУЮ ТГ ЗВЕЗДЫ, ПРИ ОПЛАТЕ ЧЕРЕЗ ЮКАССУ И Т.П
         # СТОИТ ИСПОЛЬЗОВАТЬ json.loads и json.dumps
