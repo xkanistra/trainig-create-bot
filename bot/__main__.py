@@ -4,12 +4,13 @@ from bot.domain.messenger import Messenger
 from bot.domain.storage import Storage
 from bot.handlers import get_handlers
 from bot.infrastructure.messanger_telegram import MessengerTelegram
-from bot.infrastructure.storage_sqlite import StorageSqlite
+from bot.infrastructure.storage_postgres import StoragePostgres
 from bot.long_pollin import start_long_polling
 
 if __name__ == "__main__":
     try:
-        storage: Storage = StorageSqlite()
+        # storage: Storage = StorageSqlite()
+        storage: Storage = StoragePostgres()
         messenger: Messenger = MessengerTelegram()
 
         dispatcher = Dispatcher(storage, messenger)
