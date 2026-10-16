@@ -3,12 +3,10 @@
 #
 
 DOCKER_NETWORK=pizza_bot_network
-
 POSTGRES_VOLUME=postgres_data
 POSTGRES_CONTAINER=postgres_17
-
 BOT_CONTAINER=pizza_bot
-BOT_IMAGE=Имя аккаунта на DockerHub/название репозитория с ботом
+BOT_IMAGE=kirillgdeveloper/pizza_bot:latest
 
 # Автоматически загружаем переменные из .env
 include .env
@@ -20,35 +18,27 @@ docker_volume:
 docker_net:
 	docker network create $(DOCKER_NETWORK) || true
 
-postgres_run: docker_volume docker_net
+postgres_run: docker_volume
+	docker network create $(DOCKER_NETWORK) || true
 	docker run -d \
-		--name $(POSTGRES_CONTAINER)\
+		--name $(POSTGRES_CONTAINER) \
+		--restart always \
 		-e POSTGRES_USER="$(POSTGRES_USER)" \
 		-e POSTGRES_PASSWORD="$(POSTGRES_PASSWORD)" \
 		-e POSTGRES_DB="$(POSTGRES_DB)" \
-		-p "$(POSTGRES_HOST_PORT):$(POSTGRES_CONTAINER_PORT)" \
+		-p "127.0.0.1:$(POSTGRES_HOST_PORT):$(POSTGRES_CONTAINER_PORT)" \
 		-v $(POSTGRES_VOLUME):/var/lib/postgresql/data \
 		--health-cmd="pg_isready -U $(POSTGRES_USER)" \
 		--health-interval=10s \
-		--health-timeout=5 \
+		--health-timeout=5s \
 		--health-retries=5 \
-		--health-start_period=30 \
+		--health-start-period=30s \
 		--network $(DOCKER_NETWORK) \
 		postgres:17
 
 postgres_stop:
-	docker stop $(POSTGRES_CONTAINER)
-	docker rm $(POSTGRES_CONTAINER)
-
-build:
-	docker build \
-		-t $(BOT_IMAGE) \
-		--platform linux/amd64, linux/arm64 \
-		-f Dockerfile \
-		.
-
-push:
-	docker push $(BOT_IMAGE)
+	docker stop $(POSTGRES_CONTAINER) || true
+	docker rm $(POSTGRES_CONTAINER) || true
 
 run:
 	docker run -d \
@@ -64,5 +54,5 @@ run:
 		$(BOT_IMAGE)
 
 stop:
-	docker stop $(BOT_CONTAINER)
-	docker rm $(BOT_CONTAINER)
+	docker stop $(BOT_CONTAINER) || true
+	docker rm $(BOT_CONTAINER) || true

@@ -1,5 +1,5 @@
 #!/bin/sh
 set -e
 
-python -m recreate_database_postgres
+python -m bot.recreate_database_postgres
 exec python -m bot
