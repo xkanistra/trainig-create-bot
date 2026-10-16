@@ -1,11 +1,20 @@
 # Написание диспетчера
 
 import json
+import logging
+import time
 
 from bot.domain.messenger import Messenger
 from bot.domain.storage import Storage
 from bot.handlers.handler import Handler, HandlerStatus
 from bot.tools.json_inspector import inspect
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s.%(msecs)03d] %message%s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 class Dispatcher:
@@ -32,38 +41,49 @@ class Dispatcher:
 
     # Метод обрабатывает сигнал из хендлера
     def dispatch(self, update: dict) -> None:
-        # Получаем ТГ ID
-        telegram_id = self._get_telegram_id_from_update(update)
-        # Получаем пользователя из БД
-        user = self.__storage.get_user(telegram_id) if telegram_id else None
+        update_id = update["update_id"]
+        start_time = time.time()
+        logger.info(f"DISPATCH {update_id} -> dispatch started")
+        try:
+            # Получаем ТГ ID
+            telegram_id = self._get_telegram_id_from_update(update)
+            # Получаем пользователя из БД
+            user = self.__storage.get_user(telegram_id) if telegram_id else None
 
-        # От пользователя получаем состояние
-        user_state = user.get("state") if user else None
+            # От пользователя получаем состояние
+            user_state = user.get("state") if user else None
 
-        # Из колонки order_json получаем order_json
-        order_json = user["order_json"] if user else "{}"
-        if order_json is None:
-            order_json = "{}"
-        order_json = json.loads(order_json)
+            # Из колонки order_json получаем order_json
+            order_json = user["order_json"] if user else "{}"
+            if order_json is None:
+                order_json = "{}"
+            order_json = json.loads(order_json)
 
-        inspect(update)
-        # Перебирает массив
-        for handler in self.__handlers:
-            # Если хендлер говорит что он все сделал,
-            # останавливаем перебор хендлеров
-            if handler.can_handle(
-                update,
-                user_state,
-                order_json,
-                self.__storage,
-                self.__messenger,
-            ):
-                status = handler.handle(
+            inspect(update)
+            # Перебирает массив
+            for handler in self.__handlers:
+                # Если хендлер говорит что он все сделал,
+                # останавливаем перебор хендлеров
+                if handler.can_handle(
                     update,
                     user_state,
                     order_json,
                     self.__storage,
                     self.__messenger,
-                )
-                if status == HandlerStatus.STOP:
-                    break
+                ):
+                    status = handler.handle(
+                        update,
+                        user_state,
+                        order_json,
+                        self.__storage,
+                        self.__messenger,
+                    )
+                    if status == HandlerStatus.STOP:
+                        break
+
+            duration_ms = (time.time() - start_time) * 1000
+            logger.info(f"DISPATCH {update_id} <- dispatch finished - {duration_ms:.2f}ms\n")
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"DISPATCH {update_id} X dispatch finished - {duration_ms:.2f}ms - ERROR: {e}\n")
+            raise
