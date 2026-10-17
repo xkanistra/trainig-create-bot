@@ -1,4 +1,6 @@
-import urllib.error
+
+
+import httpx
 
 from bot.domain.messenger import Messenger
 from bot.domain.order_state import OrderState
@@ -17,7 +19,7 @@ class PreCheckoutQuery(Handler):
     ) -> bool:
         return "pre_checkout_query" in update
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: OrderState,
@@ -29,10 +31,10 @@ class PreCheckoutQuery(Handler):
         pre_checkout_query_id = pre_checkout_query["id"]
 
         try:
-            messenger.answerPreCheckoutQuery(
+            await messenger.answerPreCheckoutQuery(
                 pre_checkout_query_id=pre_checkout_query_id, ok=True
             )
-        except urllib.error.HTTPError:
+        except httpx.HTTPStatusError:
             pass
 
         return HandlerStatus.STOP

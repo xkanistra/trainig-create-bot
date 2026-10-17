@@ -18,7 +18,7 @@ class UpdateDatabaseLogger(Handler):
         # Возвращает True при любом типе данных
         return True
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: OrderState,
@@ -28,5 +28,5 @@ class UpdateDatabaseLogger(Handler):
     ) -> HandlerStatus:
         # Записыва все полученные данные в БД и возвращаем True, чтобы
         # перешло к другому хендлеру
-        storage.persist_updates([update])
+        await storage.persist_updates([update])
         return HandlerStatus.CONTINUE

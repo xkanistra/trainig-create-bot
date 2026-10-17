@@ -3,6 +3,8 @@
 import json
 import urllib.error
 
+import httpx
+
 from bot.domain.messenger import Messenger
 from bot.domain.order_state import OrderState
 from bot.domain.storage import Storage
@@ -27,7 +29,7 @@ class WaitForOrder(Handler):
         callback_data = update["callback_query"]["data"]
         return callback_data.startswith("drink_")
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: OrderState,
@@ -47,7 +49,7 @@ class WaitForOrder(Handler):
         drink_name = "Не выбран"
 
         # Берем данные о заказе
-        order = storage.get_order_json(telegram_id)
+        order = await storage.get_order_json(telegram_id)
 
         # Записываем данные о заказе для дальнейшего вывода
         if order:
@@ -67,16 +69,16 @@ class WaitForOrder(Handler):
         drink_name = drink_mapping.get(callback_data)
         order_json["drink_name"] = drink_name
 
-        storage.update_user_order_json(telegram_id, order_json)
-        storage.update_user_state(telegram_id, OrderState.WAIT_FOR_ORDER)
+        await storage.update_user_order_json(telegram_id, order_json)
+        await storage.update_user_state(telegram_id, OrderState.WAIT_FOR_ORDER)
 
         try:
-            messenger.answerCallbackQuery(update["callback_query"]["id"])
+            await messenger.answerCallbackQuery(update["callback_query"]["id"])
         # Перехватываем только ошибки сети Telegram API
-        except urllib.error.HTTPError:
+        except httpx.HTTPStatusError:
             pass
 
-        messenger.makeRequest(
+        await messenger.makeRequest(
             "editMessageText",
             chat_id=chat_id,
             message_id=message_id,

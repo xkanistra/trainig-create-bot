@@ -2,6 +2,8 @@
 
 import json
 
+import httpx
+
 from bot.domain.messenger import Messenger
 from bot.domain.order_state import OrderState
 from bot.domain.storage import Storage
@@ -31,7 +33,7 @@ class PizzaSize(Handler):
         callback_data = update["callback_query"]["data"]
         return callback_data.startswith("size_")
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: OrderState,
@@ -56,12 +58,15 @@ class PizzaSize(Handler):
         pizza_size = size_mapping.get(callback_data)
         order_json["pizza_size"] = pizza_size
 
-        storage.update_user_order_json(telegram_id, order_json)
-        storage.update_user_state(telegram_id, OrderState.WAIT_FOR_DRINKS)
+        await storage.update_user_order_json(telegram_id, order_json)
+        await storage.update_user_state(telegram_id, OrderState.WAIT_FOR_DRINKS)
 
-        messenger.answerCallbackQuery(update["callback_query"]["id"])
+        try:
+            await messenger.answerCallbackQuery(update["callback_query"]["id"])
+        except httpx.HTTPStatusError:
+            pass
 
-        messenger.makeRequest(
+        await messenger.makeRequest(
             "editMessageText",
             chat_id=chat_id,
             message_id=message_id,

@@ -1,5 +1,5 @@
 import json
-import urllib.error
+import httpx
 
 from bot.domain.messenger import Messenger
 from bot.domain.order_state import OrderState
@@ -22,7 +22,7 @@ class SuccessfulPayment(Handler):
 
         return "successful_payment" in update["message"]
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: OrderState,
@@ -37,8 +37,8 @@ class SuccessfulPayment(Handler):
 
         # Удаляем старый инвойс, чтобы кнопка оплаты исчезла из чата
         try:
-            messenger.deleteMessage(chat_id=chat_id, message_id=message_id)
-        except urllib.error.HTTPError:
+            await messenger.deleteMessage(chat_id=chat_id, message_id=message_id)
+        except httpx.HTTPStatusError:
             pass
 
         # ИСПРАВЛЕНО: Полностью убрали json.loads!
@@ -85,8 +85,8 @@ class SuccessfulPayment(Handler):
         drink_name = drink_mapping.get(raw_drink, "Без напитка")
 
         # Переводим пользователя в финальный стейт и очищаем его текущую корзину
-        storage.update_user_state(telegram_id, OrderState.ORDER_FINISHED)
-        storage.clear_user_state_and_order(telegram_id)
+        await storage.update_user_state(telegram_id, OrderState.ORDER_FINISHED)
+        await storage.clear_user_state_and_order(telegram_id)
 
         # Формируем красивый текст чека
         order_information = (
@@ -99,7 +99,7 @@ class SuccessfulPayment(Handler):
         )
 
         # Отправляем финальное сообщение
-        messenger.sendMessage(
+        await messenger.sendMessage(
             chat_id=chat_id,
             text=order_information,
             parse_mode="HTML",

@@ -109,7 +109,6 @@ class OrderConfirm(Handler):
             await messenger.makeRequest(
                 "deleteMessage", chat_id=chat_id, message_id=message_id
             )
-
         except httpx.HTTPStatusError:
             pass
 
