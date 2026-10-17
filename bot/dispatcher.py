@@ -24,6 +24,9 @@ class Dispatcher:
         self.__storage: Storage = storage
         self.__messenger: Messenger = messenger
 
+    def unused_method(self) -> None:
+        return None
+
     # Метод добавляет хендлеры в массив
     def add_handler(self, *handlers: list[Handler]) -> None:
         for handler in handlers:
@@ -40,7 +43,7 @@ class Dispatcher:
         return None
 
     # Метод обрабатывает сигнал из хендлера
-    def dispatch(self, update: dict) -> None:
+    async def dispatch(self, update: dict) -> None:
         update_id = update["update_id"]
         start_time = time.time()
         logger.info(f"DISPATCH {update_id} -> dispatch started")
@@ -48,7 +51,7 @@ class Dispatcher:
             # Получаем ТГ ID
             telegram_id = self._get_telegram_id_from_update(update)
             # Получаем пользователя из БД
-            user = self.__storage.get_user(telegram_id) if telegram_id else None
+            user = await self.__storage.get_user(telegram_id) if telegram_id else None
 
             # От пользователя получаем состояние
             user_state = user.get("state") if user else None
@@ -71,7 +74,7 @@ class Dispatcher:
                     self.__storage,
                     self.__messenger,
                 ):
-                    status = handler.handle(
+                    status = await handler.handle(
                         update,
                         user_state,
                         order_json,

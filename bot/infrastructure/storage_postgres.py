@@ -1,18 +1,30 @@
 import json
+import logging
 import os
+import time
 
-import pg8000
+import asyncpg
 from dotenv import load_dotenv
 
 from bot.domain.storage import Storage
 
 load_dotenv()
 
+# Настройка логирования для БД запросов
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s.%(msecs)03d] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
 
 class StoragePostgres(Storage):
-    # Исправлено: аннотация типа теперь возвращает Connection, а не None
-    def _get_connection(self):
-        # Переменные для коннекта к БД
+    def __init__(self) -> None:
+        self._pool: asyncpg.Pool | None = None
+
+    async def _get_pool(self) -> asyncpg.Pool:
+        # Создать и вернуть connection pool для PostgreSQL
         host = os.getenv("POSTGRES_HOST")
         port = os.getenv("POSTGRES_PORT")
         user = os.getenv("POSTGRES_USER")
@@ -39,135 +51,226 @@ class StoragePostgres(Storage):
         if database is None:
             raise ValueError("POSTGRES_DB переменная окружающей среды не установленна")
 
-        # Подключаемся к БД. Приводим port к типу int
-        return pg8000.connect(
+        self._pool = await asyncpg.create_pool(
             host=host,
             port=int(port),
             user=user,
             password=password,
             database=database,
         )
+        return self._pool
 
-    def recreate_database(self) -> None:
-        # Создает таблицы внутри существующей БД
-        with self._get_connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute("DROP TABLE IF EXISTS telegram_updates")
-                cursor.execute("DROP TABLE IF EXISTS users")
-                cursor.execute(
+    # Закрываем connection pool
+    async def close(self) -> None:
+        if self._pool:
+            await self._pool.closed()
+            self._pool = None
+
+    async def recreate_database(self) -> None:
+        method_name = "recreate_database"
+        start_time = time.time()
+
+        logger.info(f"[DB] -> {method_name} - DROP/CREATE TABLES")
+
+        try:
+            pool = await self._get_pool()
+            async with pool.acquire() as connection:
+                await connection.execute("DROP TABLE IF EXISTS telegram_updates")
+                await connection.execute("DROP TABLE IF EXISTS users")
+                await connection.execute(
                     """
-                    CREATE TABLE IF NOT EXISTS telegram_updates 
-                    (
-                        id SERIAL PRIMARY KEY,
-                        payload TEXT NOT NULL
-                    )
-                    """,
+                        CREATE TABLE IF NOT EXISTS telegram_updates 
+                        (
+                            id SERIAL PRIMARY KEY,
+                            payload TEXT NOT NULL
+                        )
+                        """,
                 )
-                cursor.execute(
+                await connection.execute(
                     """
-                    CREATE TABLE IF NOT EXISTS users 
-                    (
-                        id SERIAL PRIMARY KEY,
-                        telegram_id BIGINT NOT NULL UNIQUE,
-                        created_ad TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        state TEXT DEFAULT NULL,
-                        order_json TEXT DEFAULT NULL
-                    )
-                    """,
+                        CREATE TABLE IF NOT EXISTS users 
+                        (
+                            id SERIAL PRIMARY KEY,
+                            telegram_id BIGINT NOT NULL UNIQUE,
+                            created_ad TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            state TEXT DEFAULT NULL,
+                            order_json TEXT DEFAULT NULL
+                        )
+                        """,
                 )
-            connection.commit()
+
+                duration_ms = (time.time() - start_time) * 1000
+                logger.info(f"[DB] <- {method_name} - {duration_ms:.2f}ms")
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[DB] X {method_name} - {duration_ms:.2f}ms - ERROR: {e}")
+            raise
 
     # Запрос в БД обновляет данные в ней
-    def persist_updates(self, updates: list) -> None:
-        payload = json.dumps(updates, ensure_ascii=False, indent=2)
-        with self._get_connection() as connection:
-            with connection.cursor() as cursor:
-                # Исправлено: payload обернут в кортеж (payload,)
-                cursor.execute(
-                    "INSERT INTO telegram_updates (payload) VALUES (%s)",
-                    (payload,),
-                )
-            connection.commit()
+    async def persist_updates(self, updates: list) -> None:
+        method_name = "persist_updates"
+        sql_query = "INSERT INTO telegram_updates (payload) VALUES ($1)"
+        start_time = time.time()
 
-    # Запись в БД пользователя, если его там нет
-    def ensure_users_exists(self, telegram_id: int) -> None:
-        with self._get_connection() as connection:
-            with connection.cursor() as cursor:
-                # Исправлено: все вызовы идут через cursor, а параметры передаются кортежами
-                cursor.execute(
-                    "SELECT 1 FROM users WHERE telegram_id = %s", (telegram_id,)
+        logger.info(f"[DB] -> {method_name} - {sql_query}")
+
+        payload = json.dumps(updates, ensure_ascii=False, indent=2)
+        try:
+            pool = await self._get_pool()
+            async with pool.acquire() as connection:
+                await connection.execute(
+                    "INSERT INTO telegram_updates (payload) VALUES ($1)",
+                    payload,
+                )
+                duration_ms = (time.time() - start_time) * 1000
+                logger.info(f"[DB] <- {method_name} - {duration_ms:.2f}ms")
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[DB] X {method_name} - {duration_ms:.2f}ms - ERROR: {e}")
+            raise
+
+    async def ensure_users_exists(self, telegram_id: int) -> None:
+        method_name = "ensure_users_exists"
+        start_time = time.time()
+
+        logger.info(f"[DB] -> {method_name} SELECT/INSERT users")
+        try:
+            pool = await self._get_pool()
+            async with pool.acquire() as connection:
+                result = await connection.fetchowr(
+                    "SELECT 1 FROM users WHERE telegram_id = $1",
+                    telegram_id,
                 )
 
                 # Если нету, то добавляет пользователя
-                if cursor.fetchone() is None:
-                    cursor.execute(
-                        "INSERT INTO users (telegram_id) VALUES (%s)", (telegram_id,)
+                if result is None:
+                    await connection.execute(
+                        "INSERT INTO users (telegram_id) VALUES ($1)",
+                        telegram_id,
                     )
-            connection.commit()
+                duration_ms = (time.time() - start_time) * 1000
+                logger.info(f"[DB] <- {method_name} - {duration_ms:.2f}ms")
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[DB] X {method_name} - {duration_ms:.2f}ms - ERROR: {e}")
+            raise
 
     # Очищает заказ пользователя
-    def clear_user_state_and_order(self, telegram_id: int) -> None:
-        with self._get_connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "UPDATE users SET state = NULL, order_json = NULL WHERE telegram_id = %s",
-                    (telegram_id,),
+    async def clear_user_state_and_order(self, telegram_id: int) -> None:
+        method_name = "clear_user_state_and_order"
+        sql_query = (
+            "UPDATE users SET state = NULL, order_json = NULL WHERE telegram_id = $1"
+        )
+        start_time = time.time()
+
+        logger.info(f"[DB] -> {method_name} - {sql_query}")
+        try:
+            pool = await self._get_pool()
+            async with pool.acquire() as connection:
+                await connection.execute(
+                    "UPDATE users SET state = NULL, order_json = NULL WHERE telegram_id = $1",
+                    telegram_id,
                 )
-            connection.commit()
+                duration_ms = (time.time() - start_time) * 1000
+                logger.info(f"[DB] <- {method_name} - {duration_ms:.2f}ms")
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[DB] X {method_name} - {duration_ms:.2f}ms - ERROR: {e}")
+            raise
 
     # Обновляет состояние пользователя
-    def update_user_state(self, telegram_id: int, state: str) -> None:
-        with self._get_connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "UPDATE users SET state = %s WHERE telegram_id = %s",
-                    (state, telegram_id),
+    async def update_user_state(self, telegram_id: int, state: str) -> None:
+        method_name = "update_user_state"
+        sql_query = "UPDATE users SET state = $1 WHERE telegram_id = $2"
+        start_time = time.time()
+
+        logger.info(f"[DB] -> {method_name} - {sql_query}")
+        try:
+            pool = await self._get_pool()
+            async with pool.acquire() as connection:
+                await connection.execute(
+                    "UPDATE users SET state = $1 WHERE telegram_id = $2",
+                    state,
+                    telegram_id,
                 )
-            connection.commit()
+                duration_ms = (time.time() - start_time) * 1000
+                logger.info(f"[DB] <- {method_name} - {duration_ms:.2f}ms")
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[DB] X {method_name} - {duration_ms:.2f}ms - ERROR: {e}")
+            raise
 
     # Функция достает данные пользователя
-    def get_user(self, telegram_id: int) -> dict | None:
-        with self._get_connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT id, telegram_id, created_ad, state, order_json FROM users WHERE telegram_id = %s",
-                    (telegram_id,),
-                )
-                # Исправлено: fetchone() перенесен ВНУТРЬ блока with cursor
-                result = cursor.fetchone()
+    async def get_user(self, telegram_id: int) -> dict | None:
+        method_name = "get_user"
+        sql_query = "SELECT id, telegram_id, created_ad, state, order_json FROM users WHERE telegram_id = $1"
+        start_time = time.time()
 
-            if result:
-                return {
-                    "id": result[0],
-                    "telegram_id": result[1],
-                    "created_ad": result[2],
-                    "state": result[3],
-                    "order_json": result[4],
-                }
-            return None
-        # Бесполезный connection.commit() после return удален
+        logger.info(f"[DB] -> {method_name} - {sql_query}")
+        try:
+            pool = await self._get_pool()
+            async with pool.acquire() as connection:
+                result = await connection.fetchrow(
+                    "SELECT id, telegram_id, created_ad, state, order_json FROM users WHERE telegram_id = $1",
+                    telegram_id,
+                )
+                if result:
+                    user_data = {
+                        "id": result["id"],
+                        "telegram_id": result["telegram_id"],
+                        "created_ad": result["created_ad"],
+                        "state": result["state"],
+                        "order_json": result["order_json"],
+                    }
+                    duration_ms = (time.time() - start_time) * 1000
+                    logger.info(f"[DB] <- {method_name} - {duration_ms:.2f}ms")
+                    return user_data
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[DB] X {method_name} - {duration_ms:.2f}ms - ERROR: {e}")
+            raise
 
     # Функция по telegram_id пользователю в order_json записывает данные
-    def update_user_order_json(self, telegram_id: int, order_json: str) -> None:
-        with self._get_connection() as connection:
-            with connection.cursor() as cursor:
-                # Исправлено: параметры переданы в виде единого кортежа
-                cursor.execute(
+    async def update_user_order_json(self, telegram_id: int, order_json: str) -> None:
+        method_name = "update_user_order_json"
+        sql_query = "UPDATE users SET order_json = $1 WHERE telegram_id = $2"
+        start_time = time.time()
+
+        logger.info(f"[DB] -> {method_name} - {sql_query}")
+        try:
+            pool = await self._get_pool()
+            async with pool.acquire() as connection:
+                connection.execute(
                     "UPDATE users SET order_json = %s WHERE telegram_id = %s",
-                    (json.dumps(order_json, ensure_ascii=False, indent=2), telegram_id),
+                    json.dumps(order_json, ensure_ascii=False, indent=2),
+                    telegram_id,
                 )
-            connection.commit()
 
-    def get_order_json(self, telegram_id: int) -> dict | None:
-        with self._get_connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT order_json FROM users WHERE telegram_id = %s",
-                    (telegram_id,),
+                duration_ms = (time.time() - start_time) * 1000
+                logger.info(f"[DB] <- {method_name} - {duration_ms:.2f}ms")
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[DB] X {method_name} - {duration_ms:.2f}ms - ERROR: {e}")
+            raise
+
+    async def get_order_json(self, telegram_id: int) -> dict | None:
+        method_name = "get_order_json"
+        start_time = time.time()
+
+        logger.info(f"[DB] -> {method_name} SELECT users")
+        try:
+            pool = await self._get_pool()
+            async with pool.acquire() as connection:
+                result = await connection.fetchrow(
+                    "SELECT order_json FROM users WHERE telegram_id = $1",
+                    telegram_id,
                 )
-                # Исправлено: fetchone() перенесен ВНУТРЬ блока with cursor
-                result = cursor.fetchone()
-
             if result and result[0]:
                 return json.loads(result[0])
-            return None
+
+            duration_ms = (time.time() - start_time) * 1000
+            logger.info(f"[DB] ← {method_name} - {duration_ms:.2f}ms")
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[DB] ✗ {method_name} - {duration_ms:.2f}ms - Error: {e}")
+            raise

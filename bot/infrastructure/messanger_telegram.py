@@ -1,7 +1,8 @@
-import json
-import urllib.request
+import logging
+import time
 from os import getenv
 
+import httpx
 from dotenv import load_dotenv
 
 from bot.domain.messenger import Messenger
@@ -10,71 +11,90 @@ from bot.domain.messenger import Messenger
 # без него не будет работать строка getenv
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s.%(msecs)03d] %message%s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
 
 class MessengerTelegram(Messenger):
-    # Функцией фиксим дублирование кода
-    # method - принимает любые методы для объектов
-    # **param передает любой набор параметров, благодаря **
-    def makeRequest(self, method: str, **param) -> dict:
-        # Строкой заменяем переменную data в строках 26, 50 и т.п.
-        json_data = json.dumps(param).encode("utf-8")
-        # Создает объект запроса, но сам запрос ещё не отправлен, указывает куда будем отправлять запрос
-        request = urllib.request.Request(
-            # Метод запроса
-            method="POST",
-            # url-адрес (бот в данном случае). Отправляем на него getUpdates/sendMessage и т.п через method
-            url=f"{getenv('BOT_TOKEN_URI')}/{method}",
-            # Какие данные отправляются
-            data=json_data,
-            # Какой тип данных
-            headers={"Content-Type": "application/json"},
-        )
+    def __init__(self):
+        self._session: httpx.AsyncClient | None = None
 
-        # Как отправить данные. Работает так же как и на открытие файлов (сам закрывает, не нужен closed)
-        # В respone храниться ответ на наш запрос, как при открытии файла, мы помещаем данные в переменную
+    # В этих методах вписываем URI тг и убираем его из бот токена
+    def _get_telegram_base_uri(self) -> str:
+        return f"https://api.telegram.org/bot{getenv('BOT_TOKEN')}"
+
+    def _get_telegram_file_uri(self) -> str:
+        return f"https://api.telegram.org/file/bot{getenv('BOT_TOKEN')}"
+
+    def _get_session(self) -> httpx.AsyncClient:
+        if self._session is None:
+            self._session = httpx.AsyncClient()
+        return self._session
+
+    async def makeRequest(self, method: str, **kwargs) -> dict:
+        # Отправляем http запрос
+        url = f"{self._get_telegram_base_uri()}/{method}"
+        start_time = time.time()
+
+        logger.info(f"[HTTP] -> POST {method}")
+
         try:
-            with urllib.request.urlopen(request) as response:
-                # Получаем тело ответа, для этого:
-                # методом read читаем ответ, методом decode декодируем в utf-8
-                response_body = response.read().decode("utf-8")
-                # Получаем json ответ
-                response_json = json.loads(response_body)
-                # Возвращаем ответ
+            session = await self._get_session()
+            async with session.post(
+                url,
+                json=kwargs,
+                headers={"Content-Type": "application/json"},
+            ) as response:
+                response_json = await response.json()
+                assert response_json["ok"] == True
+
+                duration_ms = (time.time() - start_time) * 1000
+                logger.info(f"[HTTP] <- POST {method} - {duration_ms:.2f}ms")
+
                 return response_json["result"]
-        except urllib.error.HTTPError as e:
-            # Это напечатает точную причину ошибки от самого Телеграма!
-            print("Telegram API Error Body:", e.read().decode("utf-8"))
+
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.info(f"[HTTP] X POST {method} - {duration_ms:.2f}ms - ERROR: {e}")
             raise
 
-    # Метод getUpdates запрашивает данные с сервера
-    # offset - параметр метода getUpdates, можно посмотреть в доке TG Bot API
-    # https://core.telegram.org/bots/api
-    ## UPD: Замена в запросе обновления конкретного типа данных, на любой тип данных
-    ## Тоже самое делает в main
-    def getUpdates(self, **params) -> dict:
-        # Используем новую функцию для создания универсальных запросов
-        return self.makeRequest("getUpdates", **params)
+    # Закрываем HTTP сессию
+    async def close(self) -> None:
+        if self._get_session and not self._session.closed:
+            await self._session.closed()
 
-    # sendMessage принимает сообщения которые отправлены в бота
-    # так же принимает аргументами параметры для sendMessage
-    ## UPD: Явно указываем что могут быть и другие параметры
-    def sendMessage(self, chat_id: int, text: str, **params) -> dict:
-        return self.makeRequest("sendMessage", chat_id=chat_id, text=text, **params)
+    # https://core.telegram.org/bots/api#getupdates
+    async def getUpdates(self, **kwargs) -> dict:
+        return await self.makeRequest("getUpdates", **kwargs)
 
-    # getMe способ тестирования токена аутентификации вашего бота. Не требуется никаких параметров
-    def getMe(self) -> dict:
-        return self.makeRequest("getMe")
+    # https://core.telegram.org/bots/api#sendmessage
+    async def sendMessage(self, chat_id: int, text: str, **kwargs) -> dict:
+        return await self.makeRequest(
+            "sendMessage", chat_id=chat_id, text=text, **kwargs
+        )
 
-    # Удаляет сообщение бота
-    def deleteMessage(self, chat_id: int, message_id: int) -> dict:
-        return self.makeRequest("deleteMessage", chat_id=chat_id, message_id=message_id)
+    # https://core.telegram.org/bots/api#getme
+    async def getMe(self) -> dict:
+        return await self.makeRequest("getMe")
 
-    def answerCallbackQuery(self, callback_query_id: str, **kwargs) -> dict:
-        return self.makeRequest(
+    # https://core.telegram.org/bots/api#deletemessage
+    async def deleteMessage(self, chat_id: int, message_id: int) -> dict:
+        return await self.makeRequest(
+            "deleteMessage", chat_id=chat_id, message_id=message_id
+        )
+
+    # https://core.telegram.org/bots/api#answercallbackquery
+    async def answerCallbackQuery(self, callback_query_id: str, **kwargs) -> dict:
+        return await self.makeRequest(
             "answerCallbackQuery", callback_query_id=callback_query_id, **kwargs
         )
 
-    def sendInvoice(
+    # https://core.telegram.org/bots/api#sendinvoice
+    async def sendInvoice(
         self,
         chat_id,
         title,
@@ -85,7 +105,7 @@ class MessengerTelegram(Messenger):
         prices,
         **kwargs,
     ):
-        return self.makeRequest(
+        return await self.makeRequest(
             "sendInvoice",
             chat_id=chat_id,
             title=title,
@@ -97,10 +117,11 @@ class MessengerTelegram(Messenger):
             **kwargs,
         )
 
-    def answerPreCheckoutQuery(
+    # https://core.telegram.org/bots/api#answerprecheckoutquery
+    async def answerPreCheckoutQuery(
         self, pre_checkout_query_id: str, ok: bool, **kwargs
     ) -> dict:
-        return self.makeRequest(
+        return await self.makeRequest(
             "answerPreCheckoutQuery",
             pre_checkout_query_id=pre_checkout_query_id,
             ok=ok,
