@@ -1,6 +1,6 @@
 import json
 import logging
-import os
+from os import getenv
 import time
 
 import asyncpg
@@ -24,12 +24,15 @@ class StoragePostgres(Storage):
         self._pool: asyncpg.Pool | None = None
 
     async def _get_pool(self) -> asyncpg.Pool:
+        if self._pool is not None:
+            return self._pool
+
         # Создать и вернуть connection pool для PostgreSQL
-        host = os.getenv("POSTGRES_HOST")
-        port = os.getenv("POSTGRES_PORT")
-        user = os.getenv("POSTGRES_USER")
-        password = os.getenv("POSTGRES_PASSWORD")
-        database = os.getenv("POSTGRES_DB")
+        host = "127.0.0.1"
+        port = 5433
+        user = "postgres"
+        password = "postgres"
+        database = "pizza_bot_test"
 
         # Исключения если не будет переменных и бот не падал
         if host is None:
@@ -38,7 +41,7 @@ class StoragePostgres(Storage):
             )
         if port is None:
             raise ValueError(
-                "POSTGRES_PORT переменная окружающей среды не установленна"
+                "POSTGRES_HOST_PORT переменная окружающей среды не установленна"
             )
         if user is None:
             raise ValueError(

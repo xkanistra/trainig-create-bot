@@ -14,8 +14,9 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO,
-    format="[%(asctime)s.%(msecs)03d] %message%s",
+    format="[{asctime}.{msecs:03.0f}] {message}",
     datefmt="%Y-%m-%d %H:%M:%S",
+    style="{",
 )
 
 
@@ -23,20 +24,19 @@ class MessengerTelegram(Messenger):
     def __init__(self):
         self._session: httpx.AsyncClient | None = None
 
-    # В этих методах вписываем URI тг и убираем его из бот токена
     def _get_telegram_base_uri(self) -> str:
         return f"https://api.telegram.org/bot{getenv('BOT_TOKEN')}"
 
     def _get_telegram_file_uri(self) -> str:
         return f"https://api.telegram.org/file/bot{getenv('BOT_TOKEN')}"
 
-    def _get_session(self) -> httpx.AsyncClient:
-        if self._session is None:
+    async def _get_session(self) -> httpx.AsyncClient:
+        # Добавлена проверка на .is_closed на случай, если сессию закрыли, но объект остался
+        if self._session is None or self._session.is_closed:
             self._session = httpx.AsyncClient()
         return self._session
 
     async def makeRequest(self, method: str, **kwargs) -> dict:
-        # Отправляем http запрос
         url = f"{self._get_telegram_base_uri()}/{method}"
         start_time = time.time()
 
@@ -44,28 +44,36 @@ class MessengerTelegram(Messenger):
 
         try:
             session = await self._get_session()
-            async with session.post(
+
+            # В httpx запрос делается без async with
+            response = await session.post(
                 url,
                 json=kwargs,
                 headers={"Content-Type": "application/json"},
-            ) as response:
-                response_json = await response.json()
-                assert response_json["ok"] == True
+            )
 
-                duration_ms = (time.time() - start_time) * 1000
-                logger.info(f"[HTTP] <- POST {method} - {duration_ms:.2f}ms")
+            # В httpx метод .json() — синхронный (без await)
+            response_json = response.json()
 
-                return response_json["result"]
+            # Вместо assert лучше использовать стандартный raise,
+            # так как assert можно случайно отключить флагом -O при запуске Python
+            if not response_json.get("ok"):
+                raise ValueError(f"Telegram API error: {response_json}")
+
+            duration_ms = (time.time() - start_time) * 1000
+            logger.info(f"[HTTP] <- POST {method} - {duration_ms:.2f}ms")
+
+            return response_json["result"]
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
             logger.info(f"[HTTP] X POST {method} - {duration_ms:.2f}ms - ERROR: {e}")
             raise
 
-    # Закрываем HTTP сессию
     async def close(self) -> None:
-        if self._get_session and not self._session.closed:
-            await self._session.closed()
+        # Исправлена проверка: проверяем именно self._session
+        if self._session is not None and not self._session.is_closed:
+            await self._session.aclose()
 
     # https://core.telegram.org/bots/api#getupdates
     async def getUpdates(self, **kwargs) -> dict:
