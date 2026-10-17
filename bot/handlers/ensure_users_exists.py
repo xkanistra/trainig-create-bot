@@ -21,7 +21,7 @@ class EnsureUsersExists(Handler):
             and "from" in update["callback_query"]
         )
 
-    def handle(
+    async def handle(
         self,
         update: OrderState,
         state: str,
@@ -29,11 +29,10 @@ class EnsureUsersExists(Handler):
         storage: Storage,
         messenger: Messenger,
     ) -> HandlerStatus:
-        ## UPD. Меняем логику хендлера для message и callback_query
         if "message" in update:
             telegram_id = update["message"]["from"]["id"]
         else:
             telegram_id = update["callback_query"]["from"]["id"]
 
-        storage.ensure_users_exists(telegram_id)
+        await storage.ensure_users_exists(telegram_id)
         return HandlerStatus.CONTINUE

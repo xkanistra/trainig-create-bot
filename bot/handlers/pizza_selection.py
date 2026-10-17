@@ -1,7 +1,7 @@
 # Хендлер обрабатывает нажатие выбора пиццы
 
+import asyncio
 import json
-
 from bot.domain.messenger import Messenger
 from bot.domain.order_state import OrderState
 from bot.domain.storage import Storage
@@ -31,7 +31,7 @@ class PizzaSelection(Handler):
         callback_data = update["callback_query"]["data"]
         return callback_data.startswith("pizza_")
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: OrderState,
@@ -61,13 +61,15 @@ class PizzaSelection(Handler):
         order_json["pizza_name"] = pizza_name
 
         # Блок обновляет состояние и добавляет название заказываемой пиццы
-        storage.update_user_order_json(telegram_id, order_json)
-        storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_SIZE)
+        await asyncio.gather(
+            storage.update_user_order_json(telegram_id, order_json),
+            storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_SIZE),
+        )
 
         # Данная строка убирает визуальное колесо загрузки
-        messenger.answerCallbackQuery(update["callback_query"]["id"])
+        await messenger.answerCallbackQuery(update["callback_query"]["id"])
 
-        messenger.makeRequest(
+        await messenger.makeRequest(
             "editMessageText",
             chat_id=chat_id,
             message_id=message_id,

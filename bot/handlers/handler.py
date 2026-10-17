@@ -31,7 +31,7 @@ class Handler(ABC):
     # CONTINUE - переход к след. хендлеру
     # STOP - остановка обработки update
     @abstractmethod
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: str,

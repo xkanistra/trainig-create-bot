@@ -1,7 +1,7 @@
 # Хендлер принимает подтверждение заказа
-
+import asyncio
 import json
-import urllib.error
+import httpx
 
 from bot.domain.messenger import Messenger
 from bot.domain.order_state import OrderState
@@ -27,7 +27,7 @@ class OrderConfirm(Handler):
         callback_data = update["callback_query"]["data"]
         return callback_data.startswith("confirm_")
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: OrderState,
@@ -39,12 +39,12 @@ class OrderConfirm(Handler):
         chat_id = update["callback_query"]["message"]["chat"]["id"]
         message_id = update["callback_query"]["message"]["message_id"]
 
-        storage.update_user_order_json(telegram_id, order_json)
+        await storage.update_user_order_json(telegram_id, order_json)
 
         try:
-            messenger.answerCallbackQuery(update["callback_query"]["id"])
+            await messenger.answerCallbackQuery(update["callback_query"]["id"])
         # Перехватываем только ошибки сети Telegram API
-        except urllib.error.HTTPError:
+        except httpx.HTTPStatusError:
             pass
 
         pizza_name = order_json.get("pizza_name", "Пицца")
@@ -106,13 +106,14 @@ class OrderConfirm(Handler):
         order_payload = f"{telegram_id}:{pizza_code}:{size_code}:{drink_code}"
 
         try:
-            messenger.makeRequest(
+            await messenger.makeRequest(
                 "deleteMessage", chat_id=chat_id, message_id=message_id
             )
-        except urllib.error.HTTPError:
+
+        except httpx.HTTPStatusError:
             pass
 
-        messenger.makeRequest(
+        await messenger.makeRequest(
             "sendInvoice",
             chat_id=chat_id,
             title=f"Заказ №{update['update_id']}",
@@ -136,5 +137,6 @@ class OrderConfirm(Handler):
                 }
             ),
         )
-        storage.update_user_state(telegram_id, OrderState.ORDER_CONFIRM)
+        await storage.update_user_state(telegram_id, OrderState.ORDER_CONFIRM),
+
         return HandlerStatus.STOP

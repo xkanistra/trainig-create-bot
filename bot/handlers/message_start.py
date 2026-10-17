@@ -1,7 +1,7 @@
 # Хендлер отправляет сообщ при входе пользователя
-
+import asyncio
 import json
-import urllib.error
+import httpx
 
 from bot.domain.messenger import Messenger
 from bot.domain.order_state import OrderState
@@ -32,7 +32,7 @@ class MessageStart(Handler):
 
         return False
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: OrderState,
@@ -77,35 +77,38 @@ class MessageStart(Handler):
             }
         )
         # Очищает заказ клиента
-        storage.clear_user_state_and_order(telegram_id)
-        storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_NAME)
+        await storage.clear_user_state_and_order(telegram_id)
+        await storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_NAME)
 
         if message_command:
-            # Сценарий А: Текстовый /start -> строго отправляем НОВЫЕ сообщения
-            messenger.sendMessage(
+            # Сценарий А: Текстовый /start -> строго отправляем НОВЫЕ сообщения. Обрабатываем асинхронно
+            await messenger.sendMessage(
                 chat_id=chat_id,
                 text="Добро пожаловать в Пиццерию!",
                 reply_markup=json.dumps({"remove_keyboard": True}),
             )
-
-            messenger.sendMessage(
+            await messenger.sendMessage(
                 chat_id=chat_id,
                 text="Пожалуйста выберите пиццу",
                 reply_markup=pizza_keyboard,
-            )
+            ),
+
         else:
             # Сценарий Б: Нажата инлайн-кнопка -> обрабатываем логику перерисовки интерфейса
             try:
-                messenger.answerCallbackQuery(update["callback_query"]["id"])
-            except urllib.error.HTTPError:
+                await messenger.answerCallbackQuery(update["callback_query"]["id"])
+            except httpx.HTTPStatusError:
                 pass
 
             # Если мы отменяем заказ с экрана инвойса, удаляем его и шлем новое меню
             if state == OrderState.ORDER_CONFIRM:
                 try:
-                    messenger.deleteMessage(chat_id=chat_id, message_id=message_id)
-                except urllib.error.HTTPError:
+                    await messenger.deleteMessage(
+                        chat_id=chat_id, message_id=message_id
+                    ),
+                except httpx.HTTPStatusError:
                     pass
+
                 messenger.sendMessage(
                     chat_id=chat_id,
                     text="Пожалуйста выберите пиццу",
@@ -114,14 +117,14 @@ class MessageStart(Handler):
             # В остальных случаях (кнопка под чеком успешной оплаты) плавно редактируем текст
             else:
                 try:
-                    messenger.makeRequest(
+                    await messenger.makeRequest(
                         "editMessageText",
                         chat_id=chat_id,
                         message_id=message_id,
                         text="Пожалуйста выберите пиццу",
                         reply_markup=pizza_keyboard,
                     )
-                except urllib.error.HTTPError:
+                except httpx.HTTPStatusError:
                     pass
 
         return HandlerStatus.STOP
