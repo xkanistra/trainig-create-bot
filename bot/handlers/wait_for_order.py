@@ -1,7 +1,6 @@
 # Хендлер подтверждения заказа
 
 import json
-import urllib.error
 
 import httpx
 

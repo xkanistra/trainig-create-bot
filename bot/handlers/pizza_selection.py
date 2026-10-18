@@ -4,6 +4,7 @@ import asyncio
 import json
 
 import httpx
+
 from bot.domain.messenger import Messenger
 from bot.domain.order_state import OrderState
 from bot.domain.storage import Storage
@@ -73,7 +74,7 @@ class PizzaSelection(Handler):
             await messenger.answerCallbackQuery(update["callback_query"]["id"])
         except httpx.HTTPStatusError:
             pass
-        
+
         await messenger.makeRequest(
             "editMessageText",
             chat_id=chat_id,

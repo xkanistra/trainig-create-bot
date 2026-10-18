@@ -1,6 +1,5 @@
 import json
 import logging
-from os import getenv
 import time
 
 import asyncpg
@@ -66,7 +65,7 @@ class StoragePostgres(Storage):
     # Закрываем connection pool
     async def close(self) -> None:
         if self._pool:
-            await self._pool.closed()
+            await self._pool.close()
             self._pool = None
 
     async def recreate_database(self) -> None:
@@ -140,7 +139,7 @@ class StoragePostgres(Storage):
         try:
             pool = await self._get_pool()
             async with pool.acquire() as connection:
-                result = await connection.fetchowr(
+                result = await connection.fetchrow(
                     "SELECT 1 FROM users WHERE telegram_id = $1",
                     telegram_id,
                 )

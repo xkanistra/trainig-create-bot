@@ -1,6 +1,6 @@
 # Хендлер отправляет сообщ при входе пользователя
-import asyncio
 import json
+
 import httpx
 
 from bot.domain.messenger import Messenger

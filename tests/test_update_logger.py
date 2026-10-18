@@ -5,7 +5,7 @@ from bot.handlers.update_database_logger import UpdateDatabaseLogger
 from tests.mocks import Mock
 
 
-def test_update_database_logger_executed():
+async def test_update_database_logger_executed():
     test_update = {
         "update_id": 123456789,
         "message": {
@@ -32,12 +32,12 @@ def test_update_database_logger_executed():
     persist_update_called = False
 
     # Проверка что объект такой же что и тестовый и что он вызывается
-    def persist_updates(update: list) -> None:
+    async def persist_updates(update: list) -> None:
         nonlocal persist_update_called
         persist_update_called = True
         assert update[0] == test_update
 
-    def get_user(telegram_id: int) -> dict | None:
+    async def get_user(telegram_id: int) -> dict | None:
         assert telegram_id == 12345
         return None
 
@@ -53,6 +53,7 @@ def test_update_database_logger_executed():
     dispatcher = Dispatcher(mock_storage, mock_messenger)
     update_logger = UpdateDatabaseLogger()
     dispatcher.add_handler(update_logger)
-    dispatcher.dispatch(test_update)
+
+    await dispatcher.dispatch(test_update)
 
     assert persist_update_called

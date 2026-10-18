@@ -12,12 +12,6 @@ from bot.domain.messenger import Messenger
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="[{asctime}.{msecs:03.0f}] {message}",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    style="{",
-)
 
 
 class MessengerTelegram(Messenger):
@@ -33,7 +27,7 @@ class MessengerTelegram(Messenger):
     async def _get_session(self) -> httpx.AsyncClient:
         # Добавлена проверка на .is_closed на случай, если сессию закрыли, но объект остался
         if self._session is None or self._session.is_closed:
-            self._session = httpx.AsyncClient()
+            self._session = httpx.AsyncClient(timeout=httpx.Timeout(70.0))
         return self._session
 
     async def makeRequest(self, method: str, **kwargs) -> dict:

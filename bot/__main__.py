@@ -1,5 +1,18 @@
 # Основной файл запускающий бота
 import asyncio
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[{asctime}.{msecs:03.0f}] {message}",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    style="{",
+    force=True,
+)
+
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+logger = logging.getLogger(__name__)
 
 from bot.dispatcher import Dispatcher
 from bot.domain.messenger import Messenger
@@ -18,8 +31,7 @@ async def main() -> None:
         dispatcher = Dispatcher(storage, messenger)
         dispatcher.add_handler(*get_handlers())
         await start_long_polling(dispatcher, messenger)
-    except KeyboardInterrupt:
-        print("\nБот выключен.")
+
     finally:
         # Закрываем соедиение при завершении
         if hasattr(messenger, "close"):
@@ -29,4 +41,7 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nБот выключен.")

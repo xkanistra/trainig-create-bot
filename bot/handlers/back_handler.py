@@ -2,6 +2,8 @@
 
 import json
 
+import httpx
+
 from bot.domain.messenger import Messenger
 from bot.domain.order_state import OrderState
 from bot.domain.storage import Storage
@@ -27,7 +29,7 @@ class Back(Handler):
         callback_data = update["callback_query"]["data"]
         return callback_data.startswith("back_")
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: OrderState,
@@ -41,20 +43,22 @@ class Back(Handler):
         message_id = update["callback_query"]["message"]["message_id"]
 
         callback_data = update["callback_query"]["data"]
-
-        messenger.answerCallbackQuery(update["callback_query"]["id"])
+        try:
+            await messenger.answerCallbackQuery(update["callback_query"]["id"])
+        except httpx.HTTPStatusError:
+            pass
 
         next_text = ""
         next_keyboard = []
 
         if callback_data == "back_to_pizza_name":
             # Возвращаем состояние с выбора размера на выбор пиццы
-            storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_NAME)
+            await storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_NAME)
 
             # Очищаем заказ т.к вернулись в самое начало
             if "pizza_name" in order_json:
                 del order_json["pizza_name"]
-                storage.update_user_order_json(telegram_id, order_json)
+                await storage.update_user_order_json(telegram_id, order_json)
 
             next_text = "Выберите пиццу (Вы вернулись назад)"
             next_keyboard = [
@@ -77,12 +81,12 @@ class Back(Handler):
 
         elif callback_data == "back_to_pizza_size":
             # Возвращаем состояние с выбора размера на выбор пиццы
-            storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_SIZE)
+            await storage.update_user_state(telegram_id, OrderState.WAIT_FOR_PIZZA_SIZE)
 
             # Очищаем заказ т.к вернулись в самое начало
             if "pizza_size" in order_json:
                 del order_json["pizza_size"]
-                storage.update_user_order_json(telegram_id, order_json)
+                await storage.update_user_order_json(telegram_id, order_json)
 
             next_text = "Выберите размер пиццы (Вы вернулись назад)"
             next_keyboard = [
@@ -101,12 +105,12 @@ class Back(Handler):
 
         elif callback_data == "back_to_drink":
             # Возвращаем состояние с выбора размера на выбор пиццы
-            storage.update_user_state(telegram_id, OrderState.WAIT_FOR_DRINKS)
+            await storage.update_user_state(telegram_id, OrderState.WAIT_FOR_DRINKS)
 
             # Очищаем заказ т.к вернулись в самое начало
             if "drink_name" in order_json:
                 del order_json["drink_name"]
-                storage.update_user_order_json(telegram_id, order_json)
+                await storage.update_user_order_json(telegram_id, order_json)
 
             next_text = "Выберите напиток (Вы вернулись назад)"
             next_keyboard = [
@@ -129,7 +133,7 @@ class Back(Handler):
 
         # Отправляем обновленный запрос меняющий текст, а не удаляющий его и отправляющий новый
         if next_text:
-            messenger.makeRequest(
+            await messenger.makeRequest(
                 "editMessageText",
                 chat_id=chat_id,
                 message_id=message_id,

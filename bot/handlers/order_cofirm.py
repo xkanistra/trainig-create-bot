@@ -1,6 +1,6 @@
 # Хендлер принимает подтверждение заказа
-import asyncio
 import json
+
 import httpx
 
 from bot.domain.messenger import Messenger

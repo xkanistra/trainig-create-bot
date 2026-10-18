@@ -1,5 +1,3 @@
-
-
 import httpx
 
 from bot.domain.messenger import Messenger

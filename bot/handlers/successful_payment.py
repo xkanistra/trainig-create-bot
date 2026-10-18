@@ -1,4 +1,5 @@
 import json
+
 import httpx
 
 from bot.domain.messenger import Messenger

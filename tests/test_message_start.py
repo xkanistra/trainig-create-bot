@@ -6,7 +6,7 @@ from bot.handlers.message_start import MessageStart
 from tests.mocks import Mock
 
 
-def test_message_start_handler():
+async def test_message_start_handler():
     test_callback_update = {
         "update_id": 987654321,
         "callback_query": {
@@ -77,35 +77,35 @@ def test_message_start_handler():
     clear_user_state_and_order_called = 0
     update_user_state_called = 0
 
-    def clear_user_state_and_order(telegram_id: int) -> None:
+    async def clear_user_state_and_order(telegram_id: int) -> None:
         assert telegram_id in [4321, 1]
         nonlocal clear_user_state_and_order_called
         clear_user_state_and_order_called += 1
 
-    def update_user_state(telegram_id: int, state: str) -> None:
+    async def update_user_state(telegram_id: int, state: str) -> None:
         assert telegram_id in [4321, 1]
         assert state == "WAIT_FOR_PIZZA_NAME"
         nonlocal update_user_state_called
         update_user_state_called += 1
 
-    def get_user(telegram_id: int) -> dict | None:
+    async def get_user(telegram_id: int) -> dict | None:
         assert telegram_id in [4321, 1]
         return {"state": None, "order_json": "{}"}
 
     message_calls = []
 
-    def sendMessage(chat_id: int, text: str, **params) -> dict:
+    async def sendMessage(chat_id: int, text: str, **params) -> dict:
         assert chat_id == 123456789
         message_calls.append({"text": text, "params": params})
         return {"ok": True}
 
-    def answerCallbackQuery(callback_query_id: str, **kwargs) -> dict:
+    async def answerCallbackQuery(callback_query_id: str, **kwargs) -> dict:
         assert callback_query_id == "1020304050"
         return {"ok": True}
 
     make_request_called = False
 
-    def makeRequest(method: str, **param) -> dict:
+    async def makeRequest(method: str, **param) -> dict:
         assert method == "editMessageText"
         assert param["chat_id"] == 123456789
         nonlocal make_request_called
@@ -132,8 +132,9 @@ def test_message_start_handler():
     dispatcher = Dispatcher(mock_storage, mock_messenger)
     message_start = MessageStart()
     dispatcher.add_handler(message_start)
-    dispatcher.dispatch(test_message_update)
-    dispatcher.dispatch(test_callback_update)
+
+    await dispatcher.dispatch(test_message_update)
+    await dispatcher.dispatch(test_callback_update)
 
     assert clear_user_state_and_order_called == 2
     assert update_user_state_called == 2

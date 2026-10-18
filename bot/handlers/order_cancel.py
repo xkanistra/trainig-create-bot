@@ -1,7 +1,7 @@
 # Хендлер принимает отмену заказа
 
-import asyncio
 import json
+
 import httpx
 
 from bot.domain.messenger import Messenger
