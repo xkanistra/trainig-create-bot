@@ -109,7 +109,7 @@ class MessageStart(Handler):
                 except httpx.HTTPStatusError:
                     pass
 
-                messenger.sendMessage(
+                await messenger.sendMessage(
                     chat_id=chat_id,
                     text="Пожалуйста выберите пиццу",
                     reply_markup=pizza_keyboard,

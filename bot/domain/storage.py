@@ -30,3 +30,6 @@ class Storage(ABC):
 
     @abstractmethod
     async def get_order_json(self, telegram_id: int) -> dict: ...
+
+    @abstractmethod
+    async def init_database(self) -> None: ...
