@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import time
 
 import asyncpg
@@ -27,11 +28,11 @@ class StoragePostgres(Storage):
             return self._pool
 
         # Создать и вернуть connection pool для PostgreSQL
-        host = "127.0.0.1"
-        port = 5433
-        user = "postgres"
-        password = "postgres"
-        database = "pizza_bot_test"
+        host = os.getenv("POSTGRES_HOST")
+        port = os.getenv("POSTGRES_PORT")
+        user = os.getenv("POSTGRES_USER")
+        password = os.getenv("POSTGRES_PASSWORD")
+        database = os.getenv("POSTGRES_DB")
 
         # Исключения если не будет переменных и бот не падал
         if host is None:
